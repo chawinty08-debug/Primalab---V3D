@@ -1,0 +1,11 @@
+{
+  "name": "primalab-v3d",
+  "private": true,
+  "description": "PrimaLab Model Builder: Visual3D .mdh and .v3s generator (static HTML, no build step)",
+  "scripts": {
+    "test": "node tests/core.test.js && node tests/ui.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0"
+  }
+}

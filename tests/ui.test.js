@@ -24,9 +24,11 @@ test('sample: mdh and v3s generated, static and mdh names filled', () => {
   assert.strictEqual($('vStatic').value, 'Take_static2026-11-10_09.44.13_AM.c3d');
   assert.ok(/^ConvLower16_.*\.mdh$/.test($('vModel').value));
 });
-test('6 joint checkboxes, all enabled for Lower 16', () => {
+test('13 joint checkboxes; lower 6 enabled, upper disabled for the lower-only sample', () => {
   const js = [...w.document.querySelectorAll('#vJoints input')];
-  assert.strictEqual(js.length, 6); assert.ok(js.every((c) => !c.disabled && c.checked));
+  assert.strictEqual(js.length, 13);
+  assert.strictEqual(js.filter((c) => !c.disabled && c.checked).length, 6);
+  assert.strictEqual($('uOn').checked, false);
 });
 test('mass from step 3 flows into Set_Subject_Weight', () => {
   $('mass').value = '97.6'; fire('mass', 'input');

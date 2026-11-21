@@ -1,4 +1,4 @@
-// Core tests for model-lab/index.html (PL core: mdh generator + pipeline).
+// Core tests for model-lab/v2/index.html (PL core: mdh generator + pipeline).
 // Run: node tests/core.test.js [extra-static.c3d ...]
 // Uses the Motive sample embedded in the page (already public). Extra C3D paths given on the
 // command line are tested too; keep participant data out of the repo (see .gitignore).
@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'model-lab', 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'model-lab', 'v2', 'index.html'), 'utf8');
 const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 const sandbox = { module: { exports: {} } };
 new Function('module', scripts[0])(sandbox.module);

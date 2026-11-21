@@ -3,15 +3,16 @@
 PrimaLab **Model Builder**: เครื่องมือในเบราว์เซอร์สำหรับสร้างไฟล์ Visual3D จาก static C3D
 (ไฟล์ทั้งหมดประมวลผลในเบราว์เซอร์ ไม่มีการอัปโหลด)
 
-| Path | หน้าที่ |
-|---|---|
-| `model-lab/index.html` | **Model Builder** (ตัวหลัก): static C3D → `.mdh` (Conventional Lower 16), จับคู่/relabel motion C3D, และ **pipeline `.v3s`** (ขั้น 4–5) |
-| `model-lab/old/index.html` | Model & Pipeline Lab รุ่นเดิม: template IOR, ตรวจ `.mdh`, อ่าน build log, pipeline รุ่นเดิม |
-| `tests/` | Node tests ของ core (`PL`) และ UI smoke test (jsdom) |
+| Path | URL บนเว็บ | หน้าที่ |
+|---|---|---|
+| `model-lab/index.html` | `/primalab/model-lab/` | **Model Builder v1** (ตัวที่ใช้อยู่บนเว็บตอนนี้ ไม่แก้ไข): static C3D → `.mdh` (Conventional Lower 16), จับคู่/relabel motion C3D |
+| `model-lab/v2/index.html` | `/primalab/model-lab/v2/` | **Model Builder v2**: ทุกอย่างของ v1 และ **pipeline `.v3s`** (ขั้น 4–5) |
+| `model-lab/old/index.html` | `/primalab/model-lab/old/` | Model & Pipeline Lab รุ่นเดิม: template IOR, ตรวจ `.mdh`, อ่าน build log, pipeline รุ่นเดิม |
+| `tests/` | | Node tests ของ core (`PL`) และ UI smoke test (jsdom) ของ v2 |
 
-แต่ละหน้าเป็นไฟล์ HTML เดียว (CSS + JS inline) ไม่มี build step ให้ deploy โฟลเดอร์ `model-lab/` ได้ทันที
+แต่ละหน้าเป็นไฟล์ HTML เดียว (CSS + JS inline) ไม่มี build step ให้อัปโหลดโฟลเดอร์ `model-lab/` ไปที่ hosting ได้ทันที (v2 ใช้ลิงก์ `../old/` และ `../` จึงต้องอยู่ใต้ `model-lab/`)
 
-## Pipeline (.v3s) ใน Model Builder
+## Pipeline (.v3s) ใน Model Builder v2
 
 ย้ายมาจาก `old/` (แท็บ 3) และผูกกับข้อมูลของ Model Builder:
 

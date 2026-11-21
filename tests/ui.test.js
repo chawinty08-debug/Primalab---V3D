@@ -1,4 +1,4 @@
-// UI smoke test: loads model-lab/index.html in jsdom (embedded sample), checks step 4-5 wiring.
+// UI smoke test: loads model-lab/v2/index.html in jsdom (embedded sample), checks step 4-5 wiring.
 // Run: npm install && node tests/ui.test.js [motion.c3d]
 'use strict';
 const fs = require('fs');
@@ -6,7 +6,7 @@ const path = require('path');
 const assert = require('assert');
 const { JSDOM } = require('jsdom');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'model-lab', 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'model-lab', 'v2', 'index.html'), 'utf8');
 const errors = [];
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true,
   beforeParse(w) { w.addEventListener('error', (e) => errors.push(e.message)); w.alert = () => {}; } });

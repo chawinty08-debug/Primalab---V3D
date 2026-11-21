@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Model &amp; Pipeline Lab · PrimaLab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #EFEBE2; --panel: #F8F6F0; --panel-2: #E6DFF3; --line: #D0C3F1;
+  --fg: #272030; --fg-2: #4E2780; --accent: #AB1D79; --accent-ink: #FFFFFF;
+  --ok: #1E7F4F; --warn: #9A5B00; --err: #B3261E;
+  --font: "IBM Plex Sans Thai", system-ui, "Noto Sans Thai", "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #272030; --panel: #31283F; --panel-2: #3E3252; --line: #4E2780;
+    --fg: #EFEBE2; --fg-2: #D0C3F1; --accent: #EF94CA; --accent-ink: #272030;
+    --ok: #5CD08F; --warn: #F2B24C; --err: #FF7A70; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5;
+  padding: 14px max(16px, env(safe-area-inset-right, 0px)) 28px max(16px, env(safe-area-inset-left, 0px)); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shell { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mark { width: 30px; height: 30px; flex: none; border: 2px solid var(--accent); border-radius: 50%; position: relative; }
+.mark::before, .mark::after { content: ""; position: absolute; background: var(--accent); }
+.mark::before { left: 50%; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; }
+.mark::after { top: 50%; left: -5px; right: -5px; height: 2px; margin-top: -1px; }
+h1 { font-size: 18px; line-height: 1.2; margin: 0; font-weight: 600; }
+h2 { font-size: 15px; margin: 0 0 8px; font-weight: 600; }
+.sub { margin: 0; font: 400 11.5px var(--mono); color: var(--fg-2); }
+a { color: var(--fg-2); }
+.notice { border: 1px solid var(--warn); border-radius: 6px; padding: 8px 12px; background: var(--panel); color: var(--fg); }
+.notice b { color: var(--warn); }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.cols { display: grid; grid-template-columns: minmax(280px, 400px) 1fr; gap: 12px; align-items: start; }
+@media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+label.f { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--fg-2); }
+label.f.wide { grid-column: 1 / -1; }
+input[type=text], input[type=number], select, textarea {
+  width: 100%; min-height: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--fg); }
+textarea { font-family: var(--mono); font-size: 12px; line-height: 1.45; resize: vertical; }
+.chk { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.chk input { width: 16px; height: 16px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); white-space: nowrap; }
+.btn:hover { background: var(--panel-2); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chip { font: 500 11.5px var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); }
+.chip.err { color: var(--err); border-color: var(--err); } .chip.warn { color: var(--warn); border-color: var(--warn); } .chip.ok { color: var(--ok); border-color: var(--ok); }
+ul.msgs { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
+ul.msgs li { padding: 5px 9px; border-left: 3px solid var(--line); background: var(--bg); border-radius: 0 4px 4px 0; font-size: 12.5px; overflow-wrap: anywhere; }
+ul.msgs li.error { border-left-color: var(--err); } ul.msgs li.warn { border-left-color: var(--warn); } ul.msgs li.ok { border-left-color: var(--ok); } ul.msgs li.unknown { border-left-color: var(--fg-2); }
+ul.msgs li small { display: block; color: var(--fg-2); font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+details { margin: 8px 0; } summary { cursor: pointer; color: var(--fg-2); }
+.lbl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 6px; }
+.lbl label { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 6px; font: 500 11.5px var(--mono); color: var(--fg-2); }
+.hint { margin: 4px 0 0; font-size: 12px; color: var(--fg-2); }
+.status { font-size: 12.5px; color: var(--fg-2); margin: 0 0 10px; }
+footer { font-size: 12px; color: var(--fg-2); border-top: 1px solid var(--line); padding-top: 10px; }
+.out { min-height: 360px; }
+.drop { display: block; border: 2px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; background: var(--bg); cursor: pointer; margin-bottom: 8px; }
+.drop.over { border-color: var(--accent); background: var(--panel-2); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.segs { margin: 6px 0 0; display: flex; flex-direction: column; gap: 2px; }
+.segs .chk label { font-size: 12.5px; } .segs .chk small { color: var(--fg-2); font: 11px var(--mono); }
+.segs .chk.miss label { color: var(--err); }
+.docref { margin: 0; font-size: 12.5px; color: var(--fg-2); display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.docref b { font-weight: 600; }
+.pre { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="bar">
+    <div class="brand"><div class="mark" aria-hidden="true"></div>
+      <div><h1>Model &amp; Pipeline Lab</h1><p class="sub">PrimaLab · ต้นแบบเพื่อการเรียนรู้ · phase 2</p></div></div>
+  </header>
+  <div class="notice"><b>ต้นแบบเพื่อการเรียนรู้:</b> ไฟล์ที่สร้างเป็น <b>ร่าง</b> ยังไม่ได้ทดสอบกับ Visual3D ของคุณ ตรวจ build log ทุกครั้งก่อนใช้งานจริง ค่าที่ติด <code>&lt;&lt;MEASURE&gt;&gt;</code> ต้องใส่ค่าจริงของผู้ถูกทดสอบ ข้อมูลทั้งหมดประมวลผลในเบราว์เซอร์ของคุณ ไม่มีการอัปโหลด</div>
+
+  <div class="tabs" role="tablist" aria-label="เครื่องมือ">
+    <button class="tab" role="tab" id="t-c3d" aria-controls="p-c3d" aria-selected="true">1 · จาก C3D → .mdh (IOR)</button>
+    <button class="tab" role="tab" id="t-mdh" aria-controls="p-mdh" aria-selected="false">2 · สร้าง .mdh (Lower 16)</button>
+    <button class="tab" role="tab" id="t-pipe" aria-controls="p-pipe" aria-selected="false">3 · สร้าง pipeline .v3s</button>
+    <button class="tab" role="tab" id="t-check" aria-controls="p-check" aria-selected="false">4 · ตรวจ .mdh</button>
+    <button class="tab" role="tab" id="t-log" aria-controls="p-log" aria-selected="false">5 · อ่าน build log</button>
+  </div>
+
+  <p class="docref" id="docref"></p>
+
+  <!-- 0: C3D -> mdh (IOR base) -->
+  <section id="p-c3d" role="tabpanel" aria-labelledby="t-c3d" class="cols">
+    <div class="card">
+      <h2>ไฟล์ C3D (static) และข้อมูลผู้ถูกทดสอบ</h2>
+      <p class="status">แม่แบบ: IOR full body จากตัวอย่าง HAS-Motion (pelvis + trunk + ขา + เท้า ไม่มีแขน/ศีรษะ) · ส่วน build ใน Visual3D ยังไม่ทดสอบ</p>
+      <label class="drop" id="drop">
+        <input type="file" id="c3dFile" accept=".c3d">
+        <span id="dropText">ลากไฟล์ .c3d มาวาง หรือกดเพื่อเลือก (ไม่อัปโหลด อ่านในเบราว์เซอร์)</span></label>
+      <ul class="msgs" id="c3dInfo"></ul>
+      <div class="row">
+        <label class="f">มวล (kg) <b>จำเป็น</b><input type="number" id="cMass" step="0.1" min="1" placeholder="70"></label>
+        <label class="f">ส่วนสูง (m) <b>จำเป็น</b><input type="number" id="cHeight" step="0.01" min="0.5" placeholder="1.70"></label>
+        <label class="f">ความลึก pelvis (m) ไม่บังคับ<input type="number" id="cDepth" step="0.001" min="0.01" placeholder="เว้นว่าง = ค่าจากต้นแบบ"></label>
+        <label class="f">ช่วง frame ที่ใช้คำนวณค่าคาดหวัง<span style="display:flex;gap:6px"><input type="number" id="cF0" min="1" step="1" placeholder="เริ่ม"><input type="number" id="cF1" min="1" step="1" placeholder="จบ"></span></label>
+        <div class="chk wide" id="pfxWrap" hidden style="grid-column:1/-1"><input type="checkbox" id="cPfx"><label for="cPfx" id="cPfxLbl">ใส่ prefix ให้ชื่อ marker (ยังไม่ทดสอบ)</label></div>
+      </div>
+      <h2 style="margin-top:14px">เลือก segment</h2>
+      <div class="pre"><button class="btn" id="preFull">Full body (ทุก segment ที่ marker ครบ)</button><button class="btn" id="preLower">Lower body เท่านั้น (ตัด trunk)</button></div>
+      <div class="segs" id="segList"></div>
+      <p class="hint">การตัด segment จะตัด landmark/metric ที่ใช้เฉพาะ segment นั้นออกด้วย และตัด segment อื่นที่ต้องพึ่งมัน (แจ้งใน “ข้อความ”)</p>
+    </div>
+    <div class="card">
+      <h2>ผลลัพธ์ .mdh</h2>
+      <div class="chips" id="cChips"></div>
+      <ul class="msgs" id="cMsgs"></ul>
+      <details id="expDet"><summary>ค่าคาดหวังเพื่อเทียบกับ build log (หน่วย m)</summary><ul class="msgs" id="cExp"></ul></details>
+      <textarea id="cOut" class="out" rows="18" readonly spellcheck="false" aria-label="เนื้อหา .mdh"></textarea>
+      <div class="actions"><button class="btn primary" id="cDl">ดาวน์โหลด .mdh</button><button class="btn" id="cCp">คัดลอก</button><span class="hint" id="cName"></span></div>
+    </div>
+  </section>
+
+  <!-- 1: mdh -->
+  <section id="p-mdh" role="tabpanel" aria-labelledby="t-mdh" class="cols" hidden>
+    <div class="card">
+      <h2>ข้อมูลผู้ถูกทดสอบและ marker</h2>
+      <p class="status">แม่แบบ: Conventional Lower (16) · ส่วน build ผ่านแล้วในโปรเจกต์ (v4) · มุม/Cardan ยังไม่ยืนยัน</p>
+      <div class="row">
+        <label class="f wide">Prefix ของชื่อ marker ใน C3D
+          <select id="pfxSel"><option value="">ไม่มี</option><option value="Skeleton_001:">Skeleton_001:</option><option value="__custom">กำหนดเอง…</option></select></label>
+        <label class="f wide" id="pfxCustomWrap" hidden>Prefix (กำหนดเอง)<input type="text" id="pfxCustom" placeholder="เช่น Subject01:" autocomplete="off"></label>
+        <label class="f">มวล (kg)<input type="number" id="mass" step="0.1" min="1" placeholder="70"></label>
+        <label class="f">ส่วนสูง (m)<input type="number" id="height" step="0.01" min="0.5" placeholder="1.70"></label>
+        <label class="f">เส้นผ่านศูนย์กลาง marker (mm)<input type="number" id="markerD" step="0.5" min="1" placeholder="14"></label>
+        <label class="f">ความลึก pelvis (m)<input type="number" id="pelvisDepth" step="0.001" min="0.01" placeholder="0.0965489"></label>
+        <label class="f">ความกว้างเข่าขวา (mm)<input type="number" id="kneeR" step="1" min="10" placeholder="100"></label>
+        <label class="f">ความกว้างเข่าซ้าย (mm)<input type="number" id="kneeL" step="1" min="10" placeholder="100"></label>
+        <label class="f">ความกว้างข้อเท้าขวา (mm)<input type="number" id="ankleR" step="1" min="10" placeholder="70"></label>
+        <label class="f">ความกว้างข้อเท้าซ้าย (mm)<input type="number" id="ankleL" step="1" min="10" placeholder="70"></label>
+      </div>
+      <p class="hint">เว้นว่าง = ใช้ค่า placeholder ของแม่แบบ (จะถูกเตือนว่ายังไม่ใช่ค่าจริง) ความกว้างข้อวัดด้วย caliper แบบผิวถึงผิว</p>
+      <details><summary>ชื่อ marker ใน C3D ของคุณ (ถ้าต่างจากค่าเริ่มต้น)</summary>
+        <div class="lbl" id="lblGrid"></div>
+        <p class="hint">ใช้ชื่อตามที่ปรากฏใน C3D จริง ไม่ใช่ชื่อจากหน้า doc ของ marker set ไม่ต้องใส่ prefix ในช่องเหล่านี้</p></details>
+      <label class="f wide">วางรายการ label จาก C3D (ไม่บังคับ — ใช้ตรวจว่า marker ครบ)
+        <textarea id="c3dLabels" rows="3" placeholder="Skeleton_001:LASI Skeleton_001:RASI ..."></textarea></label>
+    </div>
+    <div class="card">
+      <h2>ผลลัพธ์ .mdh</h2>
+      <div class="chips" id="mdhChips"></div>
+      <ul class="msgs" id="mdhMsgs"></ul>
+      <textarea id="mdhOut" class="out" rows="18" readonly spellcheck="false" aria-label="เนื้อหา .mdh"></textarea>
+      <div class="actions"><button class="btn primary" id="mdhDl">ดาวน์โหลด .mdh</button><button class="btn" id="mdhCp">คัดลอก</button><span class="hint" id="mdhName"></span></div>
+    </div>
+  </section>
+
+  <!-- 2: pipeline -->
+  <section id="p-pipe" role="tabpanel" aria-labelledby="t-pipe" class="cols" hidden>
+    <div class="card">
+      <h2>ลำดับคำสั่ง</h2>
+      <div class="chk"><input type="checkbox" id="pWs"><label for="pWs"><b>โหมด workspace</b> — ใช้โมเดลที่ build ไว้แล้ว ข้ามขั้นเปิดไฟล์/สร้างโมเดล/Build/Assign (เหลือเฉพาะ link model based)</label></div>
+      <div class="row">
+        <label class="f wide">ไฟล์ static (.c3d)<input type="text" id="pStatic" value="static.c3d" autocomplete="off"></label>
+        <label class="f wide">ไฟล์ model template (.mdh)<input type="text" id="pModel" autocomplete="off"></label>
+        <label class="f wide">ไฟล์ motion (บรรทัดละไฟล์)<textarea id="pMotion" rows="3" placeholder="trial01.c3d&#10;trial02.c3d"></textarea></label>
+      </div>
+      <div class="chk"><input type="checkbox" id="pNew" checked><label for="pNew">เริ่มด้วย File_New</label></div>
+      <div class="chk"><input type="checkbox" id="pSet" checked><label for="pSet">ตั้งมวล/ส่วนสูงด้วย Set_Subject_Weight/Height (ค่าจากแท็บ 1)</label></div>
+      <div class="chk"><input type="checkbox" id="pLow"><label for="pLow">Lowpass_Filter ให้ TARGET</label></div>
+      <div class="row">
+        <label class="f">cutoff (Hz)<input type="number" id="pCut" value="6" step="0.5" min="0.1"></label>
+        <label class="f">NUM_REFLECTED / buffer<input type="number" id="pRef" value="6" step="1" min="0"></label>
+      </div>
+      <p class="hint">ตัวอย่างใน wiki ใช้ 6 Hz เป็นแค่ตัวอย่าง ไม่ใช่ค่าแนะนำ ให้เลือกตามลักษณะงาน/การตรวจสัญญาณ · <a href="https://docs.primamotion.tech/#th-visual3d-m05-philosophy" target="_blank" rel="noopener">หลักคิดการ filter ↗</a></p>
+      <div class="chk"><input type="checkbox" id="pInterp" checked><label for="pInterp">ใส่หมายเหตุเรื่อง Interpolate (ยังไม่มี syntax ยืนยัน)</label></div>
+      <h2 style="margin-top:10px">Link model based (เลือกชนิด × joint)</h2>
+      <div class="row" id="pQuant"></div>
+      <label class="f">Resolution coordinate system (moment/force/velocity)
+        <select id="pRes"><option value="parent">segment พ่อของ joint (ตาม wiki tutorial)</option><option value="lab">LAB</option></select></label>
+      <div class="chk"><input type="checkbox" id="pNorm"><label for="pNorm">Normalize kinetics (ค่า method ยังไม่ยืนยัน)</label></div>
+      <p class="hint">Moment/force/power ต้องมี force platform ใน C3D และ force ถูก assign ให้ foot (อัตโนมัติจากระยะ COFP) · ยังไม่ได้ทดสอบ</p>
+      <h2 style="margin-top:10px">Joints</h2>
+      <div class="pre"><button class="btn" id="pjAll">Full body (ทุก joint)</button><button class="btn" id="pjLeg">ขาเท่านั้น</button><button class="btn" id="pjNone">ล้าง</button></div>
+      <p class="hint">ชื่อ segment เป็นรหัสมาตรฐาน (RHE, RAR, RFA, RHA ฯลฯ) ต้องมีในโมเดลของคุณ · template IOR ในแท็บ 1 มี pelvis/trunk/ขา/เท้าเท่านั้น (ยังไม่มีแขน/ศีรษะ) · joint อื่นให้เพิ่มเองด้านล่าง</p>
+      <div class="row" id="pJoints"></div>
+      <label class="f wide">Joint เพิ่มเอง (บรรทัดละ 1: ชื่อ, segment, reference) — ใช้ชื่อ segment ตามโมเดลของคุณ
+        <textarea id="pCustom" rows="3" placeholder="RWrist, RHA, RFA&#10;RElbow, RFA, RAR" spellcheck="false"></textarea></label>
+      <label class="f">ลำดับ Cardan
+        <select id="pCardan"><option value="ZXY">Z-X-Y (แกน template: x หน้า, y บน, z ซ้าย-ขวา)</option><option value="XYZ">X-Y-Z (แกน default ของ Visual3D)</option></select></label>
+      <p class="hint">ที่มาของลำดับ Cardan: <a href="https://docs.primamotion.tech/#th-visual3d-m06-convention" target="_blank" rel="noopener">โมดูล 6 ข้อกำหนดของมุม ↗</a></p>
+      <div class="chk"><input type="checkbox" id="pMat"><label for="pMat">ส่งออกผลเป็น .mat (Export_Data_To_Matfile)</label></div>
+      <label class="f">ชื่อไฟล์ส่งออก<input type="text" id="pMatName" value="joint_data.mat" autocomplete="off"></label>
+    </div>
+    <div class="card">
+      <h2>ผลลัพธ์ .v3s</h2>
+      <ul class="msgs" id="pMsgs"></ul>
+      <textarea id="pOut" class="out" rows="22" readonly spellcheck="false" aria-label="เนื้อหา .v3s"></textarea>
+      <div class="actions"><button class="btn primary" id="pDl">ดาวน์โหลด .v3s</button><button class="btn" id="pCp">คัดลอก</button></div>
+    </div>
+  </section>
+
+  <!-- 3: check -->
+  <section id="p-check" role="tabpanel" aria-labelledby="t-check" class="cols" hidden>
+    <div class="card">
+      <h2>วาง .mdh ที่ต้องการตรวจ</h2>
+      <textarea id="ckText" rows="16" spellcheck="false" placeholder="วางเนื้อหาไฟล์ .mdh"></textarea>
+      <label class="f wide" style="margin-top:8px">รายการ label จาก C3D (ไม่บังคับ)<textarea id="ckLabels" rows="3" placeholder="LASI RASI ..."></textarea></label>
+      <p class="hint">ตรวจ: จำนวนรายการ <code>+</code>, ชื่อซ้ำ, target ที่ไม่มีใน C3D, landmark/metric ที่อ้างแต่ไม่ได้นิยาม, tracking &lt; 3 จุด</p>
+    </div>
+    <div class="card"><h2>ผลการตรวจ</h2><div class="chips" id="ckChips"></div><ul class="msgs" id="ckMsgs" style="max-height:none"></ul></div>
+  </section>
+
+  <!-- 4: log -->
+  <section id="p-log" role="tabpanel" aria-labelledby="t-log" class="cols" hidden>
+    <div class="card">
+      <h2>วาง build log</h2>
+      <textarea id="lgText" rows="18" spellcheck="false" placeholder="วางข้อความจาก build log ของ Visual3D"></textarea>
+      <p class="hint">กฎที่มีมาจากข้อผิดพลาดที่เคยพบในโปรเจกต์นี้และ wiki ไม่ครอบคลุมทุกกรณี บรรทัดที่ไม่มีกฎจะแสดงเป็น “ยังไม่มีคำอธิบาย”</p>
+    </div>
+    <div class="card"><h2>ผลวิเคราะห์</h2><div class="chips" id="lgChips"></div><ul class="msgs" id="lgMsgs" style="max-height:none"></ul></div>
+  </section>
+
+  <footer>Visual3D เป็นผลิตภัณฑ์/เครื่องหมายของเจ้าของผลิตภัณฑ์ เครื่องมือนี้ไม่ใช่เครื่องมือทางการและไม่ได้เกี่ยวข้องกับผู้ผลิต · syntax อ้างอิง wiki.has-motion.com และข้อมูลการ build จริงในโปรเจกต์ · ใช้เพื่อการเรียนรู้</footer>
+</div>
+
+<script>
+'use strict';
+// Model Lab core: pure functions (no DOM). Node-testable.
+// Source of the mdh logic: gen_conv_lower16_v4.py (project). Output must stay byte-identical at default values.
+var ML = (function () {
+  var BASE = ['ASI', 'PSI', 'KNE', 'THI', 'ANK', 'TIB', 'TOE', 'HEE'];
+  var LABEL_KEYS = []; ['L', 'R'].forEach(function (a) { BASE.forEach(function (b) { LABEL_KEYS.push(a + b); }); });
+  var DEFAULTS = { prefix: '', mass: 70, height: 1.7, markerRadius: 0.007, kneeR: 0.1, kneeL: 0.1, ankleR: 0.07, ankleL: 0.07, pelvisDepth: 0.0965489 };
+  var AP = '+X', AX = '+Y';
+
+  function num(v) { return String(+Number(v).toPrecision(12)); }
+  function same(a, b) { return Math.abs(Number(a) - Number(b)) < 1e-12; }
+
+  function generateMdh(o) {
+    o = o || {};
+    var P = {}; Object.keys(DEFAULTS).forEach(function (k) { P[k] = (o[k] === undefined || o[k] === null || o[k] === '') ? DEFAULTS[k] : o[k]; });
+    var M = {}; LABEL_KEYS.forEach(function (k) { M[k] = (o.labels && o.labels[k]) ? o.labels[k] : k; });
+    var PFX = P.prefix || '';
+    var T = function (n) { return PFX + M[n]; };
+    var out = [], w = function (s) { out.push(s); };
+
+    function metric(n, v, note) {
+      if (note) w('! ' + note);
+      w('Set_Model_Metric'); w('! /CALIBRATION_FILE='); w('/METRIC_NAME=' + n); w('/METRIC_VALUE=' + v); w(';');
+    }
+    function chk(val, def, noteDefault, noteUser) { return same(val, def) ? noteDefault : noteUser; }
+    function segment(name, ro, rn, rt, tt, tn, obj, depth, typ, mass) {
+      typ = typ || 'Visual_3D';
+      w('!'); w('! Segment ' + name); w('!'); w('HYBRID_SEGMENT'); w('! /CALIBRATION_FILE=');
+      w('/TYPE=' + typ); w('/NAME=' + name); w('/REFERENCE_OBJECT=' + ro);
+      w('/REFERENCE_OBJECT_NAMES=' + rn); w('/REFERENCE_OBJECT_TYPES=' + rt);
+      w('/USE_CAL_TARGETS_FOR_TRACKING=FALSE'); w('/TRACKING_TYPES=' + tt); w('/TRACKING_NAMES=' + tn);
+      w('! /USE_OPTIMAL_TRACKING=TRUE'); w('! /KINEMATIC_ONLY=FALSE'); w('! /STATIC_SEGMENT=FALSE');
+      ['ROT', 'SCALE', 'TRANSLATE'].forEach(function (k) { ['X', 'Y', 'Z'].forEach(function (a) { w('/GRAPHICS_' + k + '_' + a + '=' + (k === 'SCALE' ? 1 : 0)); }); });
+      w('! /GRAPHICS_UNIT_SCALE=1.000000');
+      w(mass ? '/MASS=' + mass : '! /MASS=');
+      ['GEOMETRY', 'PROX_TO_CG_AXIAL', 'PROX_TO_CG_ML', 'PROX_TO_CG_AP', 'IXX', 'IYY', 'IZZ'].forEach(function (k) { w('! /' + k + '='); });
+      w('/AP_DIRECTION=' + AP); w('/AXIAL_DIRECTION=' + AX); w('/OBJFILE=' + obj); w('! /COLFILE=');
+      w(depth ? '/DEPTH=' + depth : '! /DEPTH='); w(';'); w('');
+    }
+    function landmark(name, d) {
+      d = d || {};
+      w('Add_Landmark'); w('/LANDMARK_NAME=' + name); w('! /CALIBRATION_FILE='); w('! /USER_GENERATED=TRUE');
+      w(d.pct ? '/USE_PERCENTAGE=TRUE' : '! /USE_PERCENTAGE=FALSE');
+      w(d.cal ? '/CALIBRATION_ONLY=TRUE' : '! /CALIBRATION_ONLY=FALSE');
+      w(d.ut ? '/USE_TARGETS=TRUE' : '! /USE_TARGETS=FALSE');
+      w(d.seg ? '/SEGMENT_NAME=' + d.seg : '! /SEGMENT_NAME=');
+      w(d.tty ? '/TARGET_TYPES=' + d.tty : '! /TARGET_TYPES='); w(d.tnm ? '/TARGET_NAMES=' + d.tnm : '! /TARGET_NAMES=');
+      w(d.ml !== undefined ? '/MCS_ML=' + d.ml : '! /MCS_ML=0.0'); w(d.ap !== undefined ? '/MCS_AP=' + d.ap : '! /MCS_AP=0.0');
+      w(d.ax !== undefined ? '/MCS_AXIAL=' + d.ax : '! /MCS_AXIAL=0.0');
+      ['LANDMARK_LOCATION', 'REFERENCE_LOCATION_TYPE', 'REFERENCE_LOCATION_NAME'].forEach(function (k) { w('! /' + k + '='); });
+      w('! /USE_REFERENCE_LOCATION=FALSE'); w(';');
+    }
+
+    w('!'); w("! Model File - Conventional Lower (16) as labelled in the user's Motive take - v3");
+    w('! DRAFT - UNTESTED in Visual3D. <<MEASURE>> = per-subject value, <<CHECK>> = verify in build log');
+    if (o.stamp) w('! Generated by PrimaLab Model Lab (learning prototype) on ' + o.stamp);
+    w("! Target-name prefix used in this file: '" + PFX + "' (empty = none)"); w('!'); w('! Model Metric Values'); w('!');
+    metric('Mass', num(P.mass), chk(P.mass, DEFAULTS.mass, '<<MEASURE>> placeholder', 'entered in Model Lab (kg)'));
+    metric('Height', num(P.height), chk(P.height, DEFAULTS.height, '<<MEASURE>> placeholder', 'entered in Model Lab (m)'));
+    metric('Gravity', '9.81'); metric('Segment_to_COFP_Distance', '0.2');
+    metric('Marker_Radius', num(P.markerRadius), chk(P.markerRadius, DEFAULTS.markerRadius, '<<MEASURE>> marker diameter / 2 (m)', 'entered in Model Lab: marker diameter / 2 (m)'));
+    ['R', 'L'].forEach(function (s) {
+      var k = P['knee' + s], a = P['ankle' + s];
+      metric('Knee_Width_' + s, num(k), chk(k, DEFAULTS['knee' + s], '<<MEASURE>> caliper, femoral epicondyles, skin to skin (m)', 'entered in Model Lab: caliper, femoral epicondyles (m)'));
+      metric('Ankle_Width_' + s, num(a), chk(a, DEFAULTS['ankle' + s], '<<MEASURE>> caliper, malleoli, skin to skin (m)', 'entered in Model Lab: caliper, malleoli (m)'));
+    });
+    metric('ASIS_Distance', 'ASIS_Distance_Calculated'); metric('Target_Radius_ASIS', 'Marker_Radius');
+    metric('RPV_Segment_Depth', num(P.pelvisDepth), chk(P.pelvisDepth, DEFAULTS.pelvisDepth, '<<MEASURE>> copied from IOR file (other subject)', 'entered in Model Lab: pelvis depth (m)'));
+    metric('RTH_Proximal_Radius', '0.5*DISTANCE(RIGHT_HIP,LEFT_HIP)');
+    metric('LTH_Proximal_Radius', '0.5*DISTANCE(LEFT_HIP,RIGHT_HIP)');
+    ['R', 'L'].forEach(function (s) {
+      metric(s + 'SK_Proximal_Radius', '0.5*Knee_Width_' + s + '+Marker_Radius');
+      metric(s + 'FT_Proximal_Radius', '0.5*Ankle_Width_' + s + '+Marker_Radius');
+      metric(s + 'FT_Distal_Radius', '0.02', '<<CHECK>> foot distal end is a single point (TOE)');
+    });
+    w('!'); w('! Segment Info'); w('!'); w('');
+    segment('RPV', 'R.ASIS+L.ASIS+R.PSIS+L.PSIS+Segment Depth', T('RASI') + '+' + T('LASI') + '+SCRM+SCRM+RPV_Segment_Depth',
+      'TARGET+TARGET+LANDMARK+LANDMARK+METRIC', 'TARGET+TARGET+TARGET+TARGET',
+      T('RASI') + '+' + T('LASI') + '+' + T('RPSI') + '+' + T('LPSI'), 'PelvisWrtAsis.v3g', num(P.pelvisDepth), 'Coda');
+    var REF = 'Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius';
+    [['R', 'RIGHT', 'rthigh.v3g', 'rshank.v3g'], ['L', 'LEFT', 'Lthigh.v3g', 'Lshank.v3g']].forEach(function (a) {
+      var s = a[0], sd = a[1], th = s + 'TH', sh = s + 'SK';
+      segment(th, REF, sd + '_HIP+' + T(s + 'KNE') + '+' + s + 'KNM+++' + th + '_Distal_Radius+' + th + '_Proximal_Radius',
+        'LANDMARK+TARGET+LANDMARK+++METRIC+METRIC', 'LANDMARK+TARGET+TARGET',
+        sd + '_HIP+' + T(s + 'KNE') + '+' + T(s + 'THI'), a[2], null, null, '0.1*Mass');
+      segment(sh, REF, s + 'KJC+' + T(s + 'ANK') + '+' + s + 'ANM+++' + sh + '_Distal_Radius+' + sh + '_Proximal_Radius',
+        'LANDMARK+TARGET+LANDMARK+++METRIC+METRIC', 'TARGET+TARGET+TARGET',
+        T(s + 'TIB') + '+' + T(s + 'ANK') + '+' + T(s + 'KNE'), a[3], null, null, '0.0465*Mass');
+    });
+    var FREF = 'Proximal Joint+Distal Joint+Lateral Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius';
+    [['R', 'rfoot.v3g'], ['L', 'Lfoot.v3g']].forEach(function (a) {
+      var s = a[0];
+      segment(s + 'FT', FREF, s + 'AJC+' + T(s + 'TOE') + '+' + T(s + 'ANK') + '+++' + s + 'FT_Distal_Radius+' + s + 'FT_Proximal_Radius',
+        'LANDMARK+TARGET+TARGET+++METRIC+METRIC', 'TARGET+TARGET+TARGET',
+        T(s + 'HEE') + '+' + T(s + 'TOE') + '+' + T(s + 'ANK'), a[1]);
+    });
+    w('!'); w('! Digitizing Wand Configuration'); w('!'); w('HYBRID_DIGITIZING_WAND'); w('! /CALIBRATION_FILE=');
+    w('/WAND_ORIENTATION_MARKER1='); w('/WAND_ORIENTATION_MARKER2='); w('! /WAND_ORIENTATION_MARKER3=');
+    w('! /OFFSET_X=0'); w('! /OFFSET_Y=0'); w('/OFFSET_Z=-0.127'); w('! /OFFSET_X2=0'); w('! /OFFSET_Y2=0'); w('! /OFFSET_Z2=0');
+    w('! /WAND_HAS_SPRING=TRUE'); w('! /WAND_TRIGGER_MARKER1='); w('! /WAND_TRIGGER_MARKER2='); w('! /WAND_TRACKING_MARKERS='); w(';');
+    w('!'); w('! Landmarks');
+    landmark('SCRM', { ut: true, tty: 'TARGET+TARGET', tnm: T('RPSI') + '+' + T('LPSI'), ax: 0.5, pct: true, cal: true });
+    [['RIGHT', ''], ['LEFT', '-']].forEach(function (a) {
+      landmark(a[0] + '_HIP', { seg: 'RPV', ml: a[1] + '0.36*ASIS_Distance*RPV_ML_Direction', ap: '-0.19*ASIS_Distance*RPV_AP_Direction', ax: '-0.30*ASIS_Distance*RPV_Axial_Direction' });
+    });
+    [['R', '-'], ['L', '']].forEach(function (a) {
+      var s = a[0], sg = a[1];
+      landmark(s + 'KNM', { seg: 'RPV', tty: 'TARGET', tnm: T(s + 'KNE'), ml: sg + '(Knee_Width_' + s + '+2*Marker_Radius)*RPV_ML_Direction', cal: true });
+      landmark(s + 'ANM', { seg: 'RPV', tty: 'TARGET', tnm: T(s + 'ANK'), ml: sg + '(Ankle_Width_' + s + '+2*Marker_Radius)*RPV_ML_Direction', cal: true });
+    });
+    ['R', 'L'].forEach(function (s) {
+      landmark(s + 'KJC', { ut: true, tty: 'TARGET+LANDMARK', tnm: T(s + 'KNE') + '+' + s + 'KNM', ml: -999999, ap: -999999, ax: 0.5, pct: true, cal: true });
+      landmark(s + 'AJC', { ut: true, tty: 'TARGET+LANDMARK', tnm: T(s + 'ANK') + '+' + s + 'ANM', ml: -999999, ap: -999999, ax: 0.5, pct: true, cal: true });
+    });
+    w('!'); w('! Muscles'); w('!');
+    return out.join('\r\n') + '\r\n';
+  }
+
+  // ---------- parser + validator ----------
+  function parseCmds(text) {
+    var lines = String(text).replace(/\r\n?/g, '\n').split('\n'), cmds = [], cur = null, note = [];
+    lines.forEach(function (raw, i) {
+      var l = raw.trim();
+      if (!l) return;
+      if (l.charAt(0) === '!') { if (/^!\s*<<(MEASURE|CHECK)>>/.test(l)) note.push(l); else note = []; return; }
+      if (l === ';') { if (cur) { cmds.push(cur); cur = null; note = []; } return; }
+      if (l.charAt(0) === '/') {
+        if (!cur) return;
+        var m = /^\/([A-Za-z0-9_]+)\s*=(.*)$/.exec(l);
+        if (m) cur.kv[m[1].toUpperCase()] = m[2].trim();
+        return;
+      }
+      if (cur) { cmds.push(cur); }
+      cur = { cmd: l, kv: {}, line: i + 1, notes: note.slice() }; note = [];
+    });
+    if (cur) cmds.push(cur);
+    return cmds;
+  }
+  var BUILTIN = {}; ['Mass', 'Height', 'Gravity', 'ASIS_Distance_Calculated', 'RPV_ML_Direction', 'RPV_AP_Direction', 'RPV_Axial_Direction', 'RPV_Depth', 'DISTANCE', 'SQRT', 'ABS', 'SIN', 'COS', 'TAN', 'ATAN', 'ATAN2', 'ACOS', 'ASIN', 'MIN', 'MAX', 'PI', 'E'].forEach(function (k) { BUILTIN[k] = 1; });
+
+  function validateMdh(text, opt) {
+    opt = opt || {};
+    var errors = [], warnings = [], cmds = parseCmds(text);
+    var lab = opt.labels ? new Set(opt.labels) : null;
+    var lms = {}, mets = {}, segs = [], placeholders = [];
+    cmds.forEach(function (c) {
+      if (c.cmd === 'Add_Landmark' && c.kv.LANDMARK_NAME) {
+        if (lms[c.kv.LANDMARK_NAME]) errors.push('landmark ชื่อซ้ำ: ' + c.kv.LANDMARK_NAME + ' (บรรทัด ' + c.line + ')');
+        lms[c.kv.LANDMARK_NAME] = c;
+      }
+      if (c.cmd === 'Set_Model_Metric' && c.kv.METRIC_NAME) {
+        if (mets[c.kv.METRIC_NAME]) warnings.push('metric ชื่อซ้ำ: ' + c.kv.METRIC_NAME + ' (บรรทัด ' + c.line + ')');
+        mets[c.kv.METRIC_NAME] = c;
+        c.notes.forEach(function (n) { placeholders.push({ name: c.kv.METRIC_NAME, tag: /<<CHECK>>/.test(n) ? 'CHECK' : 'MEASURE' }); });
+      }
+      if (c.cmd === 'HYBRID_SEGMENT') segs.push(c);
+    });
+    var autoSeg = {};
+    segs.forEach(function (c) { var nm = c.kv.NAME; if ((c.kv.REFERENCE_OBJECT || '').indexOf('Medial Distal') >= 0) autoSeg[nm + '_Distal_Radius'] = 1; });
+    var markerSet = {};
+    function checkRef(ctx, name, type) {
+      if (!name) return;
+      if (type === 'TARGET') { if (lab && !lab.has(name)) errors.push(ctx + ': ไม่พบ marker "' + name + '" ใน C3D (รายการ label ที่ให้มา)'); markerSet[name] = 1; }
+      else if (type === 'LANDMARK') { if (!lms[name]) errors.push(ctx + ': landmark "' + name + '" ไม่ได้ถูกนิยามใน template'); }
+      else if (type === 'METRIC') {
+        if (!mets[name] && !autoSeg[name] && !BUILTIN[name]) {
+          var rm = /^(.+)_(Proximal|Distal)_Radius$/.exec(name);
+          if (rm && segs.some(function (s) { return s.kv.NAME === rm[1]; })) warnings.push(ctx + ': metric "' + name + '" ไม่ได้นิยามใน template — Visual3D อาจสร้างให้เอง (ไฟล์ IOR ที่ Visual3D บันทึกมีกรณีนี้) ตรวจใน build log');
+          else errors.push(ctx + ': metric "' + name + '" ไม่ได้ถูกนิยาม (และไม่ใช่ metric ที่สร้างอัตโนมัติ)');
+        }
+      }
+    }
+    segs.forEach(function (c) {
+      var nm = c.kv.NAME || '(ไม่มีชื่อ)', ctx = 'segment ' + nm;
+      var ro = (c.kv.REFERENCE_OBJECT || '').split('+'), rn = (c.kv.REFERENCE_OBJECT_NAMES || '').split('+'), rt = (c.kv.REFERENCE_OBJECT_TYPES || '').split('+');
+      if (!(ro.length === rn.length && rn.length === rt.length)) errors.push(ctx + ': จำนวนรายการ REFERENCE_OBJECT/_NAMES/_TYPES ไม่เท่ากัน (' + ro.length + '/' + rn.length + '/' + rt.length + ')');
+      var tt = (c.kv.TRACKING_TYPES || '').split('+'), tn = (c.kv.TRACKING_NAMES || '').split('+');
+      if (tt.length !== tn.length) errors.push(ctx + ': จำนวน TRACKING_TYPES/_NAMES ไม่เท่ากัน (' + tt.length + '/' + tn.length + ')');
+      if (tn.filter(Boolean).length < 3) warnings.push(ctx + ': tracking น้อยกว่า 3 จุด');
+      var pts = {}; tn.forEach(function (n) { if (n) { if (pts[n]) errors.push(ctx + ': tracking ซ้ำ "' + n + '"'); pts[n] = 1; } });
+      for (var i = 0; i < Math.min(rn.length, rt.length); i++) checkRef(ctx, rn[i], rt[i]);
+      for (var j = 0; j < Math.min(tn.length, tt.length); j++) checkRef(ctx + ' (tracking)', tn[j], tt[j]);
+    });
+    Object.keys(lms).forEach(function (k) {
+      var c = lms[k], ctx = 'landmark ' + k;
+      if (lab && lab.has(k)) errors.push(ctx + ': ชื่อซ้ำกับ marker ใน C3D');
+      var tt = c.kv.TARGET_TYPES, tn = c.kv.TARGET_NAMES;
+      if (tt !== undefined || tn !== undefined) {
+        var a = (tt || '').split('+'), b = (tn || '').split('+');
+        if (a.length !== b.length) errors.push(ctx + ': จำนวน TARGET_TYPES/_NAMES ไม่เท่ากัน (' + a.length + '/' + b.length + ')');
+        for (var i = 0; i < Math.min(a.length, b.length); i++) checkRef(ctx, b[i], a[i]);
+      }
+      var segN = c.kv.SEGMENT_NAME;
+      if (segN && segN !== 'LAB' && !segs.some(function (s) { return s.kv.NAME === segN; })) errors.push(ctx + ': SEGMENT_NAME "' + segN + '" ไม่มี segment นี้');
+    });
+    var seen = {};
+    function scanExpr(ctx, expr) {
+      if (!expr || /^-?[0-9.]+$/.test(expr)) return;
+      var inDist = {};
+      expr.replace(/DISTANCE\s*\(([^)]*)\)/gi, function (m, args) { args.split(',').forEach(function (a) { inDist[a.trim()] = 1; }); return m; });
+      (expr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []).forEach(function (id) {
+        if (BUILTIN[id] || mets[id] || lms[id] || autoSeg[id] || markerSet[id]) return;
+        if (inDist[id]) { if (lab && !lab.has(id)) warnings.push(ctx + ': "' + id + '" ใน DISTANCE() ไม่ใช่ landmark ใน template และไม่พบใน C3D'); return; }
+        var key = ctx + id; if (seen[key]) return; seen[key] = 1;
+        warnings.push(ctx + ': ไม่รู้จัก "' + id + '" ในสูตร (ไม่ใช่ metric/landmark ใน template — อาจเป็นค่าที่ Visual3D สร้างให้ ให้ตรวจ build log)');
+      });
+    }
+    Object.keys(mets).forEach(function (k) { scanExpr('metric ' + k, mets[k].kv.METRIC_VALUE); });
+    Object.keys(lms).forEach(function (k) { ['MCS_ML', 'MCS_AP', 'MCS_AXIAL'].forEach(function (f) { scanExpr('landmark ' + k + ' ' + f, lms[k].kv[f]); }); });
+    segs.forEach(function (c) { scanExpr('segment ' + c.kv.NAME + ' MASS', c.kv.MASS); });
+    return {
+      errors: errors, warnings: warnings, placeholders: placeholders,
+      info: { segments: segs.map(function (c) { return c.kv.NAME; }), landmarks: Object.keys(lms).length, metrics: Object.keys(mets).length, targets: Object.keys(markerSet) }
+    };
+  }
+
+  // ---------- pipeline (.v3s) ----------
+  var JOINTS = [
+    { id: 'RHip', name: 'RHipAngle', seg: 'RTH', ref: 'RPV', group: 'lower', def: true }, { id: 'RKnee', name: 'RKneeAngle', seg: 'RSK', ref: 'RTH', group: 'lower', def: true }, { id: 'RAnkle', name: 'RAnkleAngle', seg: 'RFT', ref: 'RSK', group: 'lower', def: true },
+    { id: 'LHip', name: 'LHipAngle', seg: 'LTH', ref: 'RPV', group: 'lower', def: true }, { id: 'LKnee', name: 'LKneeAngle', seg: 'LSK', ref: 'LTH', group: 'lower', def: true }, { id: 'LAnkle', name: 'LAnkleAngle', seg: 'LFT', ref: 'LSK', group: 'lower', def: true },
+    { id: 'RMidfoot', name: 'RMidfootAngle', seg: 'RMF', ref: 'RFT', group: 'foot', def: false, kinOnly: true }, { id: 'LMidfoot', name: 'LMidfootAngle', seg: 'LMF', ref: 'LFT', group: 'foot', def: false, kinOnly: true },
+    { id: 'Trunk', name: 'TrunkAngle', seg: 'RTA', ref: 'RPV', group: 'trunk', def: false, kinOnly: true }, { id: 'Neck', name: 'NeckAngle', seg: 'RHE', ref: 'RTA', group: 'trunk', def: false },
+    { id: 'RShoulder', name: 'RShoulderAngle', seg: 'RAR', ref: 'RTA', group: 'upper', def: false }, { id: 'RElbow', name: 'RElbowAngle', seg: 'RFA', ref: 'RAR', group: 'upper', def: false }, { id: 'RWrist', name: 'RWristAngle', seg: 'RHA', ref: 'RFA', group: 'upper', def: false },
+    { id: 'LShoulder', name: 'LShoulderAngle', seg: 'LAR', ref: 'RTA', group: 'upper', def: false }, { id: 'LElbow', name: 'LElbowAngle', seg: 'LFA', ref: 'LAR', group: 'upper', def: false }, { id: 'LWrist', name: 'LWristAngle', seg: 'LHA', ref: 'LFA', group: 'upper', def: false }
+  ];
+  var JOINT_GROUPS = { lower: 'ขา (hip / knee / ankle)', foot: 'เท้า (midfoot)', trunk: 'ลำตัว / คอ', upper: 'แขน (shoulder / elbow / wrist)' };
+  function splitList(s) { return String(s || '').split(/[\n,;+]+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+
+  var QUANTITIES = [
+    { id: 'ANGLE', fn: 'JOINT_ANGLE', suffix: 'Angle', label: 'Joint angle (Cardan)', kinetic: false },
+    { id: 'VELOCITY', fn: 'JOINT_VELOCITY', suffix: 'Velocity', label: 'Joint angular velocity', kinetic: false },
+    { id: 'MOMENT', fn: 'JOINT_MOMENT', suffix: 'Moment', label: 'Joint moment (inverse dynamics)', kinetic: true },
+    { id: 'FORCE', fn: 'JOINT_FORCE', suffix: 'Force', label: 'Joint reaction force', kinetic: true },
+    { id: 'POWER', fn: 'JOINT_POWER_SCALAR', suffix: 'Power', label: 'Joint power (scalar)', kinetic: true }
+  ];
+  function parseCustomJoints(text) {
+    var joints = [], errors = [];
+    String(text || '').split(/\r?\n/).forEach(function (ln, i) {
+      ln = ln.trim(); if (!ln || ln.charAt(0) === '#') return;
+      var p = ln.split(/[,;\t]+|\s{1,}/).filter(Boolean);
+      if (p.length !== 3) { errors.push('บรรทัด ' + (i + 1) + ': ต้องเป็น ชื่อ, segment, reference (เช่น RWrist, RHA, RFA)'); return; }
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(p[0])) { errors.push('บรรทัด ' + (i + 1) + ': ชื่อ "' + p[0] + '" ใช้ได้เฉพาะ A-Z a-z 0-9 _ และต้องขึ้นต้นด้วยตัวอักษร'); return; }
+      joints.push({ id: 'custom' + joints.length, name: p[0], seg: p[1], ref: p[2] });
+    });
+    return { joints: joints, errors: errors };
+  }
+  function generateV3s(o) {
+    var out = [], w = function (s) { out.push(s); };
+    var statics = o.staticFile || 'static.c3d', motions = splitList(o.motionFiles);
+    function cmd(name, kv, comments) {
+      (comments || []).forEach(function (c) { w('! ' + c); });
+      w(name); (kv || []).forEach(function (p) { w(p); }); w(';');
+    }
+    w('! Pipeline generated by PrimaLab Model Lab (learning prototype)' + (o.stamp ? ' on ' + o.stamp : ''));
+    w('! DRAFT - UNTESTED in Visual3D. <<CHECK>> = verify against your Visual3D version / build log');
+    w('!');
+    if (o.workspaceOnly) { w('! Workspace mode: uses the model already built and assigned in the open workspace - no File_Open / model / Build_Model / Assign_Model_File.'); }
+    else {
+    if (o.fileNew) cmd('File_New');
+    cmd('File_Open', ['/FILE_NAME=' + statics]);
+    cmd('Create_Hybrid_Model', ['/CALIBRATION_FILE=' + statics]);
+    cmd('Apply_Model_Template', ['/MODEL_TEMPLATE=' + (o.modelFile || 'model.mdh'), '/CALIBRATION_FILE=' + statics]);
+    if (o.setSubject) {
+      cmd('Set_Subject_Weight', ['/CALIBRATION_FILE=' + statics, '/WEIGHT=' + num(o.mass)], ['<<CHECK>> unit of WEIGHT/HEIGHT (kg, m expected) not confirmed']);
+      cmd('Set_Subject_Height', ['/CALIBRATION_FILE=' + statics, '/HEIGHT=' + num(o.height)]);
+    }
+    cmd('Build_Model', ['/CALIBRATION_FILE=' + statics, '/REBUILD_ALL_MODELS=FALSE']);
+    if (motions.length) {
+      motions.forEach(function (m, i) { cmd('File_Open', ['/FILE_NAME=' + m], i === 0 ? ['<<CHECK>> opening motion files before Assign_Model_File — confirm in your workflow'] : []); });
+      cmd('Assign_Model_File', ['/CALIBRATION_FILE=' + statics, '/MOTION_FILE_NAMES=' + motions.join('+'), '/REMOVE_EXISTING_ASSIGNMENTS=FALSE']);
+    }
+    }
+    cmd('Select_Active_File', ['/FILE_NAME=ALL_FILES']);
+    if (o.interpolateNote) { w('! Interpolate: parameter list not verified here. Add it with Pipeline dialog (F11) > Signal Process > Interpolate, then "Import Checked Signals".'); }
+    if (o.lowpass) {
+      cmd('Lowpass_Filter', ['/SIGNAL_TYPES=TARGET', '/SIGNAL_FOLDER=ORIGINAL', '/SIGNAL_NAMES=', '/RESULT_FOLDER=PROCESSED', '/RESULT_SUFFIX=', '/FILTER_CLASS=BUTTERWORTH',
+        '/FREQUENCY_CUTOFF=' + num(o.cutoff), '/NUM_REFLECTED=' + num(o.reflected), '/NUM_EXTRAPOLATED=0', '/TOTAL_BUFFER_SIZE=' + num(o.buffer), '/NUM_BIDIRECTIONAL_PASSES=1'],
+        ['Syntax from wiki Pipeline Overview. Cutoff is YOUR choice (wiki example uses 6 Hz), not a recommendation.',
+          '<<CHECK>> whether model tracking uses ORIGINAL or PROCESSED targets in your workflow']);
+    }
+    var seq = o.cardan || 'ZXY', ax = seq.split('');
+    var qs = o.quantities || ['ANGLE'], names = [], cj = parseCustomJoints(o.customJoints);
+    var jlist = (o.joints || []).map(function (id) { return JOINTS.filter(function (x) { return x.id === id; })[0]; }).filter(Boolean).concat(cj.joints);
+    var KIN = false;
+    QUANTITIES.forEach(function (q) {
+      if (qs.indexOf(q.id) < 0) return;
+      if (q.kinetic) KIN = true;
+      var first = true;
+      jlist.forEach(function (j) {
+        var nm = j.name.replace(/Angle$/, '') + q.suffix, kv = ['/RESULT_NAME=' + nm, '/FUNCTION=' + q.fn, '/SEGMENT=' + j.seg], notes = [];
+        if (q.id === 'ANGLE' || q.id === 'VELOCITY') kv.push('/REFERENCE_SEGMENT=' + j.ref); else kv.push('! /REFERENCE_SEGMENT=LAB');
+        var res = (q.id === 'POWER') ? '' : ((o.resolution || 'parent') === 'parent' ? (q.id === 'ANGLE' ? '' : j.ref) : '');
+        kv.push('/RESOLUTION_COORDINATE_SYSTEM=' + res);
+        if (q.id === 'ANGLE') kv.push('/USE_CARDAN_SEQUENCE=TRUE'); else kv.push('! /USE_CARDAN_SEQUENCE=FALSE');
+        if (q.kinetic && o.normalize) kv.push('/NORMALIZATION=TRUE', '! /NORMALIZATION_METHOD='); else kv.push('! /NORMALIZATION=FALSE', '! /NORMALIZATION_METHOD=', '! /NORMALIZATION_METRIC=');
+        kv.push('! /NEGATEX=FALSE', '! /NEGATEY=FALSE', '! /NEGATEZ=FALSE');
+        if (q.id === 'ANGLE') kv.push('/AXIS1=' + ax[0], '/AXIS2=' + ax[1], '/AXIS3=' + ax[2]); else kv.push('! /AXIS1=X', '! /AXIS2=Y', '! /AXIS3=Z');
+        if (first) {
+          if (q.id === 'ANGLE') notes.push('Cardan ' + ax.join('-') + ': for template axes x=anterior, y=axial, z=medio-lateral use Z-X-Y (project note). <<CHECK>> sign/order against the viewer');
+          else notes.push('<<CHECK>> ' + q.fn + ' uses the same Compute_Model_Based_Data parameter list; no ' + q.fn + ' example in the wiki page - verify the first result in Visual3D (or save it once from Model > Compute Model Based Data and compare).');
+          if (q.id === 'MOMENT' || q.id === 'FORCE') notes.push('Joint = proximal end of SEGMENT (e.g. knee = RSK). ' + ((o.resolution || 'parent') === 'parent' ? 'Resolved in the proximal (parent) segment axes as in the wiki knee-moment tutorial.' : 'Resolved in LAB axes.') + ' Moment: Cardan not used (wiki FAQ: resolution CS or Cardan, not both).');
+          if (q.kinetic && o.normalize) notes.push('<<CHECK>> NORMALIZATION=TRUE: NORMALIZATION_METHOD value not documented in the wiki page - leave blank = dialog default (mass)? Confirm by saving once from the dialog.');
+          first = false;
+        }
+        cmd('Compute_Model_Based_Data', kv, notes); names.push(nm);
+      });
+    });
+    if (KIN) { w('! Kinetics need: force platform data assigned to the foot segments (automatic by COFP distance <= Segment_to_COFP_Distance metric), mass set, and Settings > Use Processed Targets/Analogs chosen deliberately.'); }
+    if (o.exportMat && names.length) {
+      cmd('Export_Data_To_Matfile', ['/FILE_NAME=' + (o.exportFile || 'joint_data.mat'), '/SIGNAL_TYPES=' + names.map(function () { return 'LINK_MODEL_BASED'; }).join('+'),
+        '/SIGNAL_NAMES=' + names.join('+'), '/SIGNAL_FOLDER=ORIGINAL', '/OUTPUT_NAMES=' + names.join('+')],
+        ['Syntax from wiki MATLAB page (single-signal example). <<CHECK>> multi-signal form and signal folder of the results']);
+    }
+    if (o.exportAsciiNote) w('! Export_Data_To_Ascii_File: parameter list not verified here — add from your own saved pipeline.');
+    return out.join('\r\n') + '\r\n';
+  }
+
+  function lintPipeline(o) {
+    var msg = [], motions = splitList(o.motionFiles), j = (o.joints || []).length;
+    var cj = parseCustomJoints(o.customJoints); j += cj.joints.length; cj.errors.forEach(function (e) { msg.push({ level: 'error', text: e }); });
+    if (o.workspaceOnly) msg.push({ level: 'warn', text: 'โหมด workspace: pipeline นี้ไม่ได้สร้าง/แนบโมเดลให้ — ต้อง build โมเดลและ assign กับไฟล์ที่เปิดอยู่แล้ว และชื่อ segment ต้องตรงกับในโมเดล (ถ้าไม่ตรง Visual3D จะ error ตอนรัน)' });
+    if (!o.workspaceOnly && !o.staticFile) msg.push({ level: 'error', text: 'ยังไม่ระบุไฟล์ static' });
+    if (!o.workspaceOnly && !o.modelFile) msg.push({ level: 'error', text: 'ยังไม่ระบุไฟล์ .mdh' });
+    if (!o.workspaceOnly && j && !motions.length) msg.push({ level: 'warn', text: 'เลือก joint angle แต่ไม่มีไฟล์ motion — Compute_Model_Based_Data จะไม่มีข้อมูลให้คำนวณ (ยกเว้นคำนวณบน static)' });
+    var qs = o.quantities || ['ANGLE'], kin = QUANTITIES.some(function (q) { return q.kinetic && qs.indexOf(q.id) >= 0; });
+    if (j && !qs.length) msg.push({ level: 'warn', text: 'เลือก joint แต่ไม่ได้เลือกชนิดข้อมูล (angle/moment/...)' });
+    if (kin && !o.workspaceOnly && !motions.length) msg.push({ level: 'warn', text: 'เลือก kinetics (moment/force/power) แต่ไม่มีไฟล์ motion — ต้องมี force platform ใน C3D ของ trial' });
+    if (kin && !o.workspaceOnly && !o.setSubject) msg.push({ level: 'warn', text: 'kinetics ใช้มวล subject: ถ้าไม่ตั้งมวลใน pipeline ต้องแน่ใจว่าตั้งไว้แล้วใน model/metric Mass' });
+    if (kin) { var ko = (o.joints || []).map(function (id) { return JOINTS.filter(function (x) { return x.id === id; })[0]; }).filter(function (x) { return x && x.kinOnly; }).map(function (x) { return x.id; });
+      if (ko.length) msg.push({ level: 'warn', text: 'kinetics กับ ' + ko.join(', ') + ': ใน template IOR segment RTA/RMF/LMF เป็น KINEMATIC_ONLY ไม่มีมวล/inertia จึงคำนวณ moment/force/power ไม่ได้ (angle/velocity ใช้ได้)' }); }
+    if (kin && j) msg.push({ level: 'warn', text: 'kinetics ยังไม่ได้ทดสอบ: ตรวจ force assignment (ลูกศรสีน้ำเงิน) และเทียบ moment กับค่าที่คาดก่อนใช้งาน' });
+    if (o.lowpass && !(+o.cutoff > 0)) msg.push({ level: 'error', text: 'cutoff ต้องมากกว่า 0' });
+    if (o.cardan === 'XYZ') msg.push({ level: 'warn', text: 'X-Y-Z ใช้กับแกน Visual3D default (x lateral, y anterior, z up); แกน template นี้ (AP=+X, AXIAL=+Y) ต้องใช้ Z-X-Y' });
+    if (j && o.exportMat === false) { /* no-op */ }
+    return msg;
+  }
+
+  // ---------- build log analyzer ----------
+  var LOG_RULES = [
+    { re: /Landmark Failed to Create/i, level: 'error', title: 'Landmark สร้างไม่สำเร็จ', hint: 'มักเกิดจาก metric/segment/target ที่ landmark อ้างไม่มี หรือ dependency ผิดลำดับ ดูข้อความก่อนหน้าและแก้ต้นทางก่อน (ความล้มเหลวต่อเนื่องกัน)' },
+    { re: /requires two proximal locations or a proximal location and radius/i, level: 'error', title: 'Segment ขาดปลาย proximal', hint: 'proximal landmark อาจสร้างไม่สำเร็จ หรือปลายแบบจุดเดียวไม่มี radius metric แก้ landmark ต้นทางก่อน' },
+    { re: /DATA_NOT_FOUND/, level: 'error', title: 'DATA_NOT_FOUND', hint: 'ข้อมูลที่อ้างหายไป (landmark/metric/target) ตรวจชื่อและว่าถูกสร้างหรือไม่ แก้ต้นทางก่อน' },
+    { re: /Segment Length is calculated to be zero/i, level: 'error', title: 'ความยาว segment เป็นศูนย์', hint: 'จุด proximal/distal ทับกันหรือไม่ถูกสร้าง ตรวจพิกัด landmark ใน log' },
+    { re: /CUSTOM geometry requires the inertia values to be greater than zero/i, level: 'error', title: 'CUSTOM geometry ต้องมี inertia > 0', hint: 'เกิดเมื่อใส่ /MASS= โดยไม่กำหนด IXX/IYY/IZZ เป็นตัวเลขมากกว่า 0 (บทเรียนจากกล่องในโปรเจกต์ ยังไม่ยืนยันผลหลังแก้)' },
+    { re: /mass expression returns NO_DATA/i, level: 'error', title: 'mass expression ได้ NO_DATA', hint: 'เคยเกิดกับชื่อ segment ที่ไม่ใช่รหัสมาตรฐาน (เช่น RSHANK) สาเหตุแน่ชัดยังไม่ทราบ ลองใช้ RTH/RSK/RFT/RPV และใส่ /MASS= ชัดเจน' },
+    { re: /SKELETON[ _]?\d+/i, level: 'info', title: 'รายการชื่อ subject (SKELETON …)', hint: 'ในโปรเจกต์นี้ รายการที่ Failed ซึ่งขึ้นชื่อ subject เป็นสำเนาที่ Visual3D สร้างตามชื่อ subject และไม่กระทบโมเดล (สังเกตจากการ build ครั้งก่อน)' },
+    { re: /Joints? Found/i, level: 'info', title: 'รายการ joint', hint: 'ตรวจว่าครบตามที่คาด (hip/knee/ankle ซ้าย-ขวา); joint เกิดเมื่อ proximal ของ child ตรงกับ distal ของ parent' }
+  ];
+  function analyzeLog(text) {
+    var res = [], lines = String(text).replace(/\r\n?/g, '\n').split('\n'), counted = {};
+    lines.forEach(function (ln, i) {
+      var matched = false;
+      LOG_RULES.forEach(function (r) {
+        if (r.re.test(ln)) { matched = true; res.push({ level: r.level, line: i + 1, title: r.title, text: ln.trim(), hint: r.hint }); }
+      });
+      if (!matched && /\b(fail(ed)?|error|exception)\b/i.test(ln)) res.push({ level: 'unknown', line: i + 1, title: 'พบคำว่า fail/error ที่ยังไม่มีกฎอธิบาย', text: ln.trim(), hint: 'ยังไม่มีคำอธิบาย ส่งบรรทัดนี้พร้อมบรรทัดรอบข้างมาให้ตรวจ' });
+    });
+    return res;
+  }
+
+  return { generateMdh: generateMdh, validateMdh: validateMdh, parseCmds: parseCmds, parseCustomJoints: parseCustomJoints, generateV3s: generateV3s, lintPipeline: lintPipeline, analyzeLog: analyzeLog, JOINTS: JOINTS, JOINT_GROUPS: JOINT_GROUPS, QUANTITIES: QUANTITIES, LABEL_KEYS: LABEL_KEYS, DEFAULTS: DEFAULTS, splitList: splitList, num: num };
+})();
+if (typeof module !== 'undefined') module.exports = ML;
+
+/* Model Lab core2 — C3D reader + base-mdh trimmer (IOR). Adds functions onto ML. */
+function installCore2(ML) {
+  // ---------- C3D reader ----------
+  function cleanStr(s) { return String(s).replace(/[\u0000]+/g, ' ').replace(/\s+$/, '').replace(/^\s+/, ''); }
+  function ascii(u8, a, b) { var s = ''; for (var i = a; i < b && i < u8.length; i++) s += String.fromCharCode(u8[i]); return s; }
+
+  ML.parseC3D = function (buf) {
+    var u8 = new Uint8Array(buf), dv = new DataView(buf), warnings = [];
+    if (u8.length < 1024) throw new Error('ไฟล์สั้นเกินไปสำหรับเป็น C3D');
+    var pstart = (u8[0] - 1) * 512;
+    if (pstart < 0 || pstart + 512 > u8.length) throw new Error('header ไม่ใช่ C3D (ตำแหน่ง parameter block ผิด)');
+    var ptype = u8[pstart + 3];
+    if (ptype === 85) throw new Error('C3D แบบ DEC (processor type 85) ยังไม่รองรับ');
+    if (ptype !== 84 && ptype !== 86) throw new Error('ไม่รู้จัก processor type ' + ptype + ' — ไฟล์อาจไม่ใช่ C3D');
+    var le = ptype === 84;
+    var u16 = function (o) { return dv.getUint16(o, le); }, i16 = function (o) { return dv.getInt16(o, le); }, f32 = function (o) { return dv.getFloat32(o, le); };
+    var H = function (w) { return u16(2 * (w - 1)); };
+    // parameters
+    var nblk = u8[pstart + 2], end = Math.min(u8.length, pstart + Math.max(nblk, 1) * 512), o = pstart + 4, gname = {}, P = {};
+    while (o + 2 < end) {
+      var nl = dv.getInt8(o); if (nl === 0) break;
+      var gi = dv.getInt8(o + 1), name = cleanStr(ascii(u8, o + 2, o + 2 + Math.abs(nl)));
+      var p = o + 2 + Math.abs(nl); if (p + 2 > u8.length) break;
+      var nxt = i16(p);
+      if (gi < 0) { gname[-gi] = name; }
+      else {
+        var t = dv.getInt8(p + 2), nd = u8[p + 3], dims = [], q = p + 4 + nd, n = 1;
+        for (var d = 0; d < nd; d++) { dims.push(u8[p + 4 + d]); n *= u8[p + 4 + d]; }
+        var data = null;
+        if (q + n <= u8.length) {
+          if (t === -1) {
+            if (nd >= 2) { var w = dims[0], cnt = w ? Math.floor(n / w) : 0; data = []; for (var i = 0; i < cnt; i++) data.push(cleanStr(ascii(u8, q + i * w, q + (i + 1) * w))); }
+            else data = cleanStr(ascii(u8, q, q + n));
+          } else if (t === 2) { data = []; for (var a = 0; a < n; a++) data.push(i16(q + 2 * a)); }
+          else if (t === 4) { data = []; for (var b = 0; b < n; b++) data.push(f32(q + 4 * b)); }
+          else if (t === 1) { data = []; for (var c = 0; c < n; c++) data.push(u8[q + c]); }
+        }
+        P[(gname[gi] || String(gi)) + ':' + name] = { t: t, dims: dims, data: data };
+      }
+      if (nxt === 0) break;
+      o = p + nxt;
+    }
+    function par(k) { return P[k] ? P[k].data : undefined; }
+    function first(k, def) { var v = par(k); return Array.isArray(v) ? (v.length ? v[0] : def) : (v === undefined || v === null ? def : v); }
+    var npts = first('POINT:USED', H(2));
+    var labels = par('POINT:LABELS'); if (!Array.isArray(labels)) labels = labels ? [labels] : [];
+    labels = labels.slice(0, npts);
+    if (labels.length < npts) throw new Error('POINT:LABELS น้อยกว่าจำนวน marker (' + labels.length + '/' + npts + ')');
+    var scale = first('POINT:SCALE', -1), rate = first('POINT:RATE', 0);
+    var unitsRaw = par('POINT:UNITS'); var units = String(Array.isArray(unitsRaw) ? unitsRaw[0] : (unitsRaw || 'mm')).trim().toLowerCase();
+    var uf = { mm: 0.001, cm: 0.01, m: 1 }[units];
+    if (uf === undefined) { uf = 0.001; warnings.push('หน่วย POINT:UNITS "' + units + '" ไม่รู้จัก — สมมติเป็น mm'); }
+    var nan = H(3), ds = H(9), nfr = first('POINT:FRAMES', 0);
+    if (!nfr || nfr === 65535) nfr = H(5) - H(4) + 1;
+    var isF = scale < 0, isz = isF ? 4 : 2, per = (npts * 4 + nan) * isz, start = (ds - 1) * 512;
+    if (start < 0 || start >= u8.length) throw new Error('ตำแหน่งข้อมูล point ผิดปกติ');
+    var avail = Math.floor((u8.length - start) / per);
+    if (avail < nfr) { warnings.push('ข้อมูลจริงมี ' + avail + ' frame น้อยกว่าที่ header ระบุ (' + nfr + ')'); nfr = avail; }
+    var pts = new Float32Array(nfr * npts * 4), mul = isF ? 1 : Math.abs(scale);
+    for (var f = 0; f < nfr; f++) {
+      var base = start + f * per;
+      for (var k = 0; k < npts; k++) {
+        var oo = base + k * 4 * isz, dst = (f * npts + k) * 4;
+        if (isF) { pts[dst] = f32(oo); pts[dst + 1] = f32(oo + 4); pts[dst + 2] = f32(oo + 8); pts[dst + 3] = f32(oo + 12); }
+        else { pts[dst] = i16(oo) * mul; pts[dst + 1] = i16(oo + 2) * mul; pts[dst + 2] = i16(oo + 4) * mul; pts[dst + 3] = i16(oo + 6); }
+      }
+    }
+    // prefix
+    var prefix = '';
+    var c0 = labels[0] && labels[0].indexOf(':') >= 0 ? labels[0].slice(0, labels[0].indexOf(':') + 1) : '';
+    if (c0 && labels.every(function (l) { return l.indexOf(c0) === 0; })) prefix = c0;
+    var bare = labels.map(function (l) { return prefix ? l.slice(prefix.length) : l; });
+    var idx = {}; bare.forEach(function (l, i) { idx[l] = i; });
+    var sn = par('SUBJECTS:NAMES'), isStat = first('SUBJECTS:IS_STATIC', null), lp = par('SUBJECTS:LABEL_PREFIXES');
+    return {
+      labels: labels, bare: bare, idx: idx, prefix: prefix, units: units, unitFactor: uf, rate: rate, frames: nfr, scale: scale,
+      pts: pts, npts: npts, subject: Array.isArray(sn) ? sn[0] : (sn || ''), isStatic: isStat, labelPrefixParam: Array.isArray(lp) ? lp[0] : (lp || ''),
+      warnings: warnings, params: P
+    };
+  };
+
+  // mean position (metres) of every marker over frames [f0,f1] (0-based, inclusive)
+  ML.c3dMeans = function (c, f0, f1) {
+    f0 = Math.max(0, f0 === undefined ? 0 : f0); f1 = Math.min(c.frames - 1, f1 === undefined ? c.frames - 1 : f1);
+    var out = {}, gaps = {};
+    for (var k = 0; k < c.npts; k++) {
+      var s = [0, 0, 0], n = 0;
+      for (var f = f0; f <= f1; f++) {
+        var o = (f * c.npts + k) * 4, x = c.pts[o], y = c.pts[o + 1], z = c.pts[o + 2], r = c.pts[o + 3];
+        if (r < 0 || x !== x || y !== y || z !== z || (x === 0 && y === 0 && z === 0)) continue;
+        s[0] += x; s[1] += y; s[2] += z; n++;
+      }
+      var nm = c.bare[k];
+      out[nm] = n ? [s[0] / n * c.unitFactor, s[1] / n * c.unitFactor, s[2] / n * c.unitFactor] : null;
+      gaps[nm] = n;
+    }
+    return { mean: out, valid: gaps, total: f1 - f0 + 1 };
+  };
+
+  function dist(a, b) { return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2)); }
+  function dom(v) { var ax = ['X', 'Y', 'Z'], i = 0; for (var k = 1; k < 3; k++) if (Math.abs(v[k]) > Math.abs(v[i])) i = k; return { axis: (v[i] >= 0 ? '+' : '-') + ax[i], ratio: Math.abs(v[i]) / Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) }; }
+
+  // ---------- mdh block utilities ----------
+  function mdhBlocks(text) {
+    var eol = text.indexOf('\r\n') >= 0 ? '\r\n' : '\n', endsNL = /\n$/.test(text), lines = text.split(/\r?\n/);
+    if (endsNL) lines.pop();
+    var blocks = [], cur = null, misc = null;
+    lines.forEach(function (l) {
+      var t = l.trim();
+      if (cur) {
+        cur.lines.push(l);
+        if (t === ';') { blocks.push(cur); cur = null; }
+        else if (t.charAt(0) === '/') { var m = /^\/([A-Za-z0-9_]+)\s*=(.*)$/.exec(t); if (m) cur.kv[m[1].toUpperCase()] = m[2].trim(); }
+        return;
+      }
+      if (t && t.charAt(0) !== '!' && t.charAt(0) !== '/' && t !== ';') {
+        if (misc) { blocks.push(misc); misc = null; }
+        cur = { kind: 'cmd', cmd: t, kv: {}, lines: [l] }; return;
+      }
+      if (!misc) misc = { kind: 'misc', lines: [] };
+      misc.lines.push(l);
+    });
+    if (cur) blocks.push(cur);
+    if (misc) blocks.push(misc);
+    return { blocks: blocks, eol: eol, endsNL: endsNL };
+  }
+  function mdhJoin(p) {
+    var out = []; p.blocks.forEach(function (b) { Array.prototype.push.apply(out, b.lines); });
+    return out.join(p.eol) + (p.endsNL ? p.eol : '');
+  }
+  function idents(e) { return String(e || '').match(/[A-Za-z_][A-Za-z0-9_]*/g) || []; }
+
+  function analyze(parsed) {
+    var nodes = {}, order = [];
+    parsed.blocks.forEach(function (b) {
+      if (b.kind !== 'cmd') return;
+      var id = null;
+      if (b.cmd === 'HYBRID_SEGMENT' && b.kv.NAME) id = 'S:' + b.kv.NAME;
+      else if (b.cmd === 'Add_Landmark' && b.kv.LANDMARK_NAME) id = 'L:' + b.kv.LANDMARK_NAME;
+      else if (b.cmd === 'Set_Model_Metric' && b.kv.METRIC_NAME) id = 'M:' + b.kv.METRIC_NAME;
+      if (id) { b.id = id; nodes[id] = b; order.push(id); }
+    });
+    function exprDeps(e, d) { idents(e).forEach(function (t) { if (nodes['M:' + t]) d['M:' + t] = 1; else if (nodes['L:' + t]) d['L:' + t] = 1; }); }
+    function listDeps(types, names, d) {
+      var tt = String(types || '').split('+'), nn = String(names || '').split('+');
+      nn.forEach(function (n, i) { n = n.trim(); if (!n) return; var ty = (tt[i] || '').trim(); if (ty === 'LANDMARK' && nodes['L:' + n]) d['L:' + n] = 1; else if (ty === 'METRIC' && nodes['M:' + n]) d['M:' + n] = 1; });
+    }
+    order.forEach(function (id) {
+      var b = nodes[id], kv = b.kv, d = {};
+      if (b.cmd === 'HYBRID_SEGMENT') {
+        listDeps(kv.REFERENCE_OBJECT_TYPES, kv.REFERENCE_OBJECT_NAMES, d); listDeps(kv.TRACKING_TYPES, kv.TRACKING_NAMES, d);
+        ['PROX_TO_CG_AXIAL', 'PROX_TO_CG_ML', 'PROX_TO_CG_AP', 'IXX', 'IYY', 'IZZ', 'MASS', 'DEPTH'].forEach(function (f) { exprDeps(kv[f], d); });
+      } else if (b.cmd === 'Add_Landmark') {
+        listDeps(kv.TARGET_TYPES, kv.TARGET_NAMES, d);
+        if (kv.SEGMENT_NAME && kv.SEGMENT_NAME !== 'LAB' && nodes['S:' + kv.SEGMENT_NAME]) d['S:' + kv.SEGMENT_NAME] = 1;
+        if (kv.REFERENCE_LOCATION_TYPE === 'LANDMARK' && nodes['L:' + kv.REFERENCE_LOCATION_NAME]) d['L:' + kv.REFERENCE_LOCATION_NAME] = 1;
+        ['MCS_ML', 'MCS_AP', 'MCS_AXIAL'].forEach(function (f) { exprDeps(kv[f], d); });
+      } else exprDeps(kv.METRIC_VALUE, d);
+      delete d[id]; b.deps = Object.keys(d);
+    });
+    return { nodes: nodes, order: order };
+  }
+  function reach(A, roots) {
+    var seen = {}, st = roots.slice();
+    while (st.length) { var id = st.pop(); if (seen[id]) continue; seen[id] = 1; (A.nodes[id] ? A.nodes[id].deps : []).forEach(function (d) { st.push(d); }); }
+    return seen;
+  }
+  function ownMarkers(b, A, set) {
+    function lt(types, names) {
+      var tt = String(types || '').split('+'), nn = String(names || '').split('+');
+      nn.forEach(function (n, i) { n = n.trim(); if (n && (tt[i] || '').trim() === 'TARGET') set[n] = 1; });
+    }
+    function ex(e) {
+      String(e || '').replace(/DISTANCE\s*\(([^)]*)\)/gi, function (m, a) { a.split(',').forEach(function (x) { x = x.trim(); if (x && !A.nodes['L:' + x] && !A.nodes['M:' + x]) set[x] = 1; }); return m; });
+      String(e || '').replace(/([A-Za-z_][A-Za-z0-9_]*)::/g, function (m, a) { set[a] = 1; return m; });
+    }
+    var kv = b.kv;
+    if (b.cmd === 'HYBRID_SEGMENT') { lt(kv.REFERENCE_OBJECT_TYPES, kv.REFERENCE_OBJECT_NAMES); lt(kv.TRACKING_TYPES, kv.TRACKING_NAMES); }
+    else if (b.cmd === 'Add_Landmark') { lt(kv.TARGET_TYPES, kv.TARGET_NAMES); ['MCS_ML', 'MCS_AP', 'MCS_AXIAL'].forEach(function (f) { ex(kv[f]); }); }
+    else ex(kv.METRIC_VALUE);
+  }
+
+  var SEG_DESC = {
+    VLAB: ['Virtual lab segment (kinematic only)', 'virtual'], RPV: ['Pelvis (Coda: ASIS + PSIS)', 'lower'], RTA: ['Trunk / thorax', 'trunk'],
+    RTH: ['Right thigh', 'lower'], LTH: ['Left thigh', 'lower'], RSK: ['Right shank', 'lower'], LSK: ['Left shank', 'lower'],
+    RFT: ['Right foot', 'lower'], LFT: ['Left foot', 'lower'], RMF: ['Right midfoot (kinematic only)', 'foot2'], LMF: ['Left midfoot (kinematic only)', 'foot2']
+  };
+  ML.SEG_DESC = SEG_DESC;
+  ML.LOWER_ONLY_REMOVE = ['RTA'];
+
+  // per-segment info: markers needed, which other segments it requires
+  ML.baseSegments = function (baseText, bareLabels) {
+    var A = analyze(mdhBlocks(baseText)), lab = bareLabels ? new Set(bareLabels) : null, out = [];
+    A.order.filter(function (id) { return id.charAt(0) === 'S'; }).forEach(function (id) {
+      var r = reach(A, [id]), mk = {}, req = [];
+      Object.keys(r).forEach(function (n) { ownMarkers(A.nodes[n], A, mk); if (n.charAt(0) === 'S' && n !== id) req.push(n.slice(2)); });
+      var markers = Object.keys(mk).sort(), name = id.slice(2);
+      out.push({ name: name, desc: (SEG_DESC[name] || [name, 'other'])[0], group: (SEG_DESC[name] || [name, 'other'])[1], markers: markers, requires: req, missing: lab ? markers.filter(function (m) { return !lab.has(m); }) : [] });
+    });
+    return out;
+  };
+
+  ML.requiredMarkers = function (text) {
+    var A = analyze(mdhBlocks(text)), mk = {};
+    A.order.forEach(function (id) { ownMarkers(A.nodes[id], A, mk); });
+    return Object.keys(mk).sort();
+  };
+
+  // ---------- trimming ----------
+  function trim(parsed, removeSegs) {
+    var A = analyze(parsed), notes = [], req = [];
+    removeSegs.forEach(function (n) { if (!A.nodes['S:' + n]) notes.push('ไม่พบ segment "' + n + '" ใน template ต้นแบบ — ข้าม'); else if (req.indexOf(n) < 0) req.push(n); });
+    var allSeg = A.order.filter(function (id) { return id.charAt(0) === 'S'; }), X, kept, cascaded = [];
+    for (var guard = 0; guard < 50; guard++) {
+      X = {}; req.forEach(function (n) { X['S:' + n] = 1; });
+      kept = allSeg.filter(function (id) { return !X[id]; });
+      var rAll = reach(A, allSeg), rKept = reach(A, kept);
+      A.order.forEach(function (id) { if (id.charAt(0) !== 'S' && rAll[id] && !rKept[id]) X[id] = 1; });
+      req.forEach(function (n) { A.order.forEach(function (id) { if (id.indexOf('M:' + n + '_') === 0) X[id] = 1; }); });
+      var ch = true;
+      while (ch) { ch = false; A.order.forEach(function (id) { if (X[id]) return; if (A.nodes[id].deps.some(function (d) { return X[d]; })) { X[id] = 1; ch = true; } }); }
+      var conflict = kept.filter(function (id) { return X[id]; });
+      if (!conflict.length) break;
+      conflict.forEach(function (id) { var n = id.slice(2); req.push(n); cascaded.push(n); notes.push('ตัด ' + n + ' ด้วย เพราะต้องพึ่ง segment/landmark ที่ถูกตัด'); });
+    }
+    var rem = { segments: [], landmarks: [], metrics: [] };
+    Object.keys(X).forEach(function (id) { var t = id.charAt(0); (t === 'S' ? rem.segments : t === 'L' ? rem.landmarks : rem.metrics).push(id.slice(2)); });
+    parsed.blocks = parsed.blocks.filter(function (b) { return !(b.id && X[b.id]); });
+    rem.segments.forEach(function (n) {
+      var re = new RegExp('^!\\s*Segment\\s+' + n.replace(/[^A-Za-z0-9_]/g, '') + '\\s*$');
+      parsed.blocks.forEach(function (b) {
+        if (b.kind !== 'misc') return;
+        for (var i = 1; i < b.lines.length - 1; i++) {
+          if (re.test(b.lines[i].trim()) && b.lines[i - 1].trim() === '!' && b.lines[i + 1].trim() === '!') { b.lines.splice(i - 1, 3); if (b.lines.length && b.lines[i - 1] !== undefined && b.lines[i - 1].trim() === '' && i - 1 > 0 && b.lines[i - 2].trim() === '') b.lines.splice(i - 1, 1); break; }
+        }
+      });
+    });
+    parsed.blocks = parsed.blocks.filter(function (b) { return !(b.kind === 'misc' && b.lines.length === 0); });
+    return { removed: rem, cascaded: cascaded, notes: notes };
+  }
+
+  function setMetric(parsed, name, value, note) {
+    var b = null; parsed.blocks.forEach(function (x) { if (x.id === 'M:' + name) b = x; });
+    if (!b) return false;
+    b.lines = b.lines.map(function (l) { return /^\/METRIC_VALUE\s*=/.test(l.trim()) ? '/METRIC_VALUE=' + value : l; });
+    b.kv.METRIC_VALUE = String(value);
+    b.lines = b.lines.filter(function (l) { return !/^!\s*<<(MEASURE|CHECK)>>/.test(l.trim()); });
+    if (note) b.lines.unshift('! ' + note);
+    return true;
+  }
+  function noteOnly(parsed, name, note) {
+    var b = null; parsed.blocks.forEach(function (x) { if (x.id === 'M:' + name) b = x; });
+    if (!b) return false; b.lines.unshift('! ' + note); return true;
+  }
+  function setLine(b, key, value) {
+    var done = false, re = new RegExp('^/' + key + '\\s*=');
+    b.lines = b.lines.map(function (l) { if (re.test(l.trim())) { done = true; return '/' + key + '=' + value; } return l; });
+    b.kv[key] = String(value); return done;
+  }
+
+  // prefix (optional / untested): add prefix to TARGET-typed names and marker args in DISTANCE()
+  function applyPrefix(parsed, pfx) {
+    var A = analyze(parsed);
+    function mapNames(b, tk, nk) {
+      var tt = String(b.kv[tk] || '').split('+'), nn = String(b.kv[nk] || '').split('+');
+      if (b.kv[nk] === undefined) return;
+      var out = nn.map(function (n, i) { return (n.trim() && (tt[i] || '').trim() === 'TARGET') ? pfx + n.trim() : n; }).join('+');
+      setLine(b, nk, out);
+    }
+    A.order.forEach(function (id) {
+      var b = A.nodes[id];
+      if (b.cmd === 'HYBRID_SEGMENT') { mapNames(b, 'REFERENCE_OBJECT_TYPES', 'REFERENCE_OBJECT_NAMES'); mapNames(b, 'TRACKING_TYPES', 'TRACKING_NAMES'); }
+      else if (b.cmd === 'Add_Landmark') mapNames(b, 'TARGET_TYPES', 'TARGET_NAMES');
+      else if (b.cmd === 'Set_Model_Metric' && /DISTANCE/i.test(b.kv.METRIC_VALUE || '')) {
+        var v = b.kv.METRIC_VALUE.replace(/DISTANCE\s*\(([^)]*)\)/gi, function (m, a) {
+          return 'DISTANCE(' + a.split(',').map(function (x) { x = x.trim(); return (A.nodes['L:' + x] || A.nodes['M:' + x]) ? x : pfx + x; }).join(',') + ')';
+        });
+        setLine(b, 'METRIC_VALUE', v);
+      }
+    });
+  }
+
+  // expected values (metres) for comparing with the Visual3D build log
+  function expectedValues(parsed, means) {
+    var A = analyze(parsed), out = [], M = means;
+    var rpv = A.nodes['S:RPV'], rasis = null, lasis = null;
+    if (rpv) {
+      var ro = String(rpv.kv.REFERENCE_OBJECT || '').split('+'), rn = String(rpv.kv.REFERENCE_OBJECT_NAMES || '').split('+'), rt = String(rpv.kv.REFERENCE_OBJECT_TYPES || '').split('+');
+      ro.forEach(function (s, i) { if (rt[i] === 'TARGET' && s === 'R.ASIS') rasis = rn[i]; if (rt[i] === 'TARGET' && s === 'L.ASIS') lasis = rn[i]; });
+    }
+    var asis = (rasis && lasis && M[rasis] && M[lasis]) ? dist(M[rasis], M[lasis]) : null;
+    if (asis !== null) out.push({ name: 'ASIS_Distance_Calculated', value: asis, basis: 'ระยะ ' + rasis + '–' + lasis + ' จาก C3D (สมมติว่า Visual3D คำนวณจาก marker ASIS — ยังไม่ได้ยืนยัน)' });
+    var hipK = null; // half separation coefficient of RIGHT_HIP/LEFT_HIP along ML
+    var rh = A.nodes['L:RIGHT_HIP'], lh = A.nodes['L:LEFT_HIP'];
+    if (rh && lh) { var a = /^(-?[0-9.]+)\*ASIS_Distance\*RPV_ML_Direction$/.exec(rh.kv.MCS_ML || ''), b = /^(-?[0-9.]+)\*ASIS_Distance\*RPV_ML_Direction$/.exec(lh.kv.MCS_ML || ''); if (a && b) hipK = Math.abs(+a[1] - +b[1]); }
+    A.order.forEach(function (id) {
+      if (id.charAt(0) !== 'M') return;
+      var b = A.nodes[id], v = (b.kv.METRIC_VALUE || '').trim(), m = /^([0-9.]+)\s*\*\s*DISTANCE\(\s*([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\s*\)$/i.exec(v);
+      if (!m) return;
+      var k = +m[1], p = m[2], q = m[3];
+      if (M[p] && M[q]) out.push({ name: id.slice(2), value: k * dist(M[p], M[q]), basis: v + ' (marker จาก C3D)' });
+      else if (asis !== null && hipK !== null && ((p === 'RIGHT_HIP' && q === 'LEFT_HIP') || (p === 'LEFT_HIP' && q === 'RIGHT_HIP'))) out.push({ name: id.slice(2), value: k * hipK * asis, basis: v + ' → ระยะ hip = ' + hipK + '×ASIS_Distance (คำนวณจากสูตรใน template)' });
+    });
+    return out;
+  }
+
+  // ---------- orchestrator ----------
+  ML.buildFromBase = function (o) {
+    o = o || {};
+    var parsed = mdhBlocks(o.baseText), notes = [];
+    var tr = trim(parsed, o.removeSegments || []);
+    tr.notes.forEach(function (n) { notes.push(n); });
+    var A0 = analyze(parsed), has = function (id) { return !!A0.nodes[id]; };
+    var mass = o.mass, height = o.height;
+    if (mass !== undefined && mass !== null && mass !== '' && isFinite(+mass) && +mass > 0) setMetric(parsed, 'Mass', ML.num(mass), 'Mass entered in Model Lab (kg)');
+    else { setMetric(parsed, 'Mass', '100', '<<MEASURE>> placeholder from the IOR example (100 kg) - replace with subject mass'); notes.push('ยังไม่ได้กรอก Mass — ใช้ค่า 100 kg จากไฟล์ต้นแบบ (ต้องแก้)'); }
+    if (height !== undefined && height !== null && height !== '' && isFinite(+height) && +height > 0) setMetric(parsed, 'Height', ML.num(height), 'Height entered in Model Lab (m)');
+    else { setMetric(parsed, 'Height', '1', '<<MEASURE>> placeholder from the IOR example (1 m) - replace with subject height'); notes.push('ยังไม่ได้กรอก Height — ใช้ค่า 1 m จากไฟล์ต้นแบบ (ต้องแก้)'); }
+    var pd = o.pelvisDepth;
+    if (has('S:RPV')) {
+      if (pd !== undefined && pd !== null && pd !== '' && isFinite(+pd) && +pd > 0) {
+        setMetric(parsed, 'RPV_Segment_Depth', ML.num(pd), 'Pelvis depth entered in Model Lab (m)');
+        parsed.blocks.forEach(function (b) { if (b.id === 'S:RPV') setLine(b, 'DEPTH', ML.num(pd)); });
+      } else noteOnly(parsed, 'RPV_Segment_Depth', '<<CHECK>> value kept from the IOR example subject (not measured on this subject)');
+    }
+    if (has('M:RTA_Segment_Depth')) noteOnly(parsed, 'RTA_Segment_Depth', '<<CHECK>> value kept from the IOR example (0.1 m) - not measured on this subject');
+    ['RMF_Proximal_Radius', 'LMF_Proximal_Radius'].forEach(function (n) { if (has('M:' + n)) noteOnly(parsed, n, '<<CHECK>> constant 0.01 from the IOR example'); });
+    var pfx = '';
+    if (o.applyPrefix && o.prefix) { pfx = o.prefix; applyPrefix(parsed, pfx); notes.push('ใส่ prefix "' + pfx + '" ให้ชื่อ marker ใน template (ยังไม่ได้ทดสอบใน Visual3D — ปกติ Visual3D จัดการ prefix เองผ่าน Subject Name Prefix)'); }
+    var rem = tr.removed.segments;
+    var head = ['! Generated by PrimaLab Model Lab (DRAFT - not yet built in Visual3D)', '! Base template: ' + (o.sourceName || 'IOR full body example') + (o.stamp ? '  |  ' + o.stamp : ''),
+      '! Segments removed: ' + (rem.length ? rem.join(', ') : '(none)'), '! Check the Visual3D build log before using results', '!'];
+    parsed.blocks.unshift({ kind: 'misc', lines: head });
+    var text = mdhJoin(parsed);
+    var labels = o.c3d ? o.c3d.bare.map(function (l) { return pfx + l; }) : null;
+    var val = ML.validateMdh(text, labels ? { labels: labels } : {});
+    var req = ML.requiredMarkers(text), missing = labels ? req.filter(function (m) { return labels.indexOf(m) < 0 && labels.indexOf(pfx + m) < 0; }) : [];
+    var exp = [];
+    if (o.c3d) {
+      var mm = ML.c3dMeans(o.c3d, o.f0, o.f1).mean, bare = {}; Object.keys(mm).forEach(function (k) { if (mm[k]) bare[k] = mm[k]; });
+      exp = expectedValues(parsed, bare);
+    }
+    return { text: text, removed: tr.removed, cascaded: tr.cascaded, notes: notes, validation: val, required: req, missing: missing, expected: exp };
+  };
+
+  ML.c3dSummary = function (c, base, f0, f1) {
+    var mm = ML.c3dMeans(c, f0, f1), M = mm.mean, gaps = [];
+    Object.keys(mm.valid).forEach(function (k) { if (mm.valid[k] < mm.total) gaps.push({ label: k, valid: mm.valid[k], total: mm.total }); });
+    var s = { markers: c.npts, rate: c.rate, frames: c.frames, units: c.units, prefix: c.prefix, subject: c.subject, isStatic: c.isStatic, gaps: gaps, warnings: c.warnings.slice(), forward: null, right: null, asis: null };
+    if (base) {
+      var A = analyze(mdhBlocks(base)), rpv = A.nodes['S:RPV'];
+      if (rpv) {
+        var ro = String(rpv.kv.REFERENCE_OBJECT || '').split('+'), rn = String(rpv.kv.REFERENCE_OBJECT_NAMES || '').split('+'), rt = String(rpv.kv.REFERENCE_OBJECT_TYPES || '').split('+'), nm = {};
+        ro.forEach(function (x, i) { if (rt[i] === 'TARGET') nm[x] = rn[i]; else if (rt[i] === 'LANDMARK' && x === 'R.PSIS') nm[x] = null; });
+        var ra = M[nm['R.ASIS']], la = M[nm['L.ASIS']], rp = M['RIPS'], lp = M['LIPS'];
+        if (ra && la) {
+          s.asis = dist(ra, la);
+          s.right = dom([ra[0] - la[0], ra[1] - la[1], ra[2] - la[2]]);
+          if (rp && lp) { var ma = [(ra[0] + la[0]) / 2, (ra[1] + la[1]) / 2, (ra[2] + la[2]) / 2], mp = [(rp[0] + lp[0]) / 2, (rp[1] + lp[1]) / 2, (rp[2] + lp[2]) / 2]; s.forward = dom([ma[0] - mp[0], ma[1] - mp[1], ma[2] - mp[2]]); }
+        }
+      }
+    }
+    return s;
+  };
+  ML._mdh = { mdhBlocks: mdhBlocks, mdhJoin: mdhJoin, analyze: analyze, trim: trim };
+  return ML;
+}
+if (typeof module !== 'undefined') module.exports = installCore2; else installCore2(ML);
+
+ML.BASE_IOR = {
+  name: "IORFullBodyModel.mdh (HAS-Motion IOR gait example)",
+  text: "!\r\n! Model File Generated by Visual3D ModelBuilder\r\n!\r\n!\r\n! Method For Computing Model Pose\r\n!\r\n!\r\n! Model Pose Pipeline\r\n!\r\n!\r\n! Model Metric Values\r\n!\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=Mass\r\n/METRIC_VALUE=100\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=Height\r\n/METRIC_VALUE=1\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=Gravity\r\n/METRIC_VALUE=9.81\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=Segment_to_COFP_Distance\r\n/METRIC_VALUE=0.2\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=ASIS_Distance\r\n/METRIC_VALUE=ASIS_Distance_Calculated\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=Target_Radius_ASIS\r\n/METRIC_VALUE= 0.0000\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RTA_Distal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(RCAJ,LCAJ)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RTA_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(RCAJ,LCAJ)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RTA_Segment_Depth\r\n/METRIC_VALUE=0.1\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RPV_Segment_Depth\r\n/METRIC_VALUE=0.0965489\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RTH_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(RIGHT_HIP,LEFT_HIP)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=LTH_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(LEFT_HIP,RIGHT_HIP)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RSK_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(RFLE,RFME)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=LSK_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(LFLE,LFME)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RFT_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(RFAL,RTAM)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=LFT_Proximal_Radius\r\n/METRIC_VALUE=0.5*DISTANCE(LFAL,LTAM)\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=RMF_Proximal_Radius\r\n/METRIC_VALUE=0.01\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=LMF_Proximal_Radius\r\n/METRIC_VALUE=0.01\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=VLAB_Distal_Radius\r\n/METRIC_VALUE=0.1\r\n;\r\nSet_Model_Metric\r\n! /CALIBRATION_FILE=\r\n/METRIC_NAME=VLAB_Proximal_Radius\r\n/METRIC_VALUE=0.1\r\n;\r\n!\r\n! Segment Info\r\n!\r\n\r\n!\r\n! Segment VLAB\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=VLAB\r\n/REFERENCE_OBJECT=Additional Plane+Additional Object+Proximal Joint+Distal Joint+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=Lateral+VLab_ML+Lab_Origin+Lab_AX+VLAB_Distal_Radius+VLAB_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=+LANDMARK+LANDMARK+LANDMARK+METRIC+METRIC\r\n! /USE_CAL_TARGETS_FOR_TRACKING=TRUE\r\n/TRACKING_TYPES=LANDMARK+LANDMARK+LANDMARK\r\n/TRACKING_NAMES=Lab_Origin+Lab_AX+VLab_ML\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n/KINEMATIC_ONLY=TRUE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n/MASS=0.000000\r\n! /GEOMETRY=\r\n/PROX_TO_CG_AXIAL=0.5*VLAB_SEG_LENGTH\r\n/PROX_TO_CG_ML=0*VLAB_SEG_LENGTH\r\n/PROX_TO_CG_AP=0*VLAB_SEG_LENGTH\r\n/IXX=0\r\n/IYY=0\r\n/IZZ=0\r\n/AP_DIRECTION=-X\r\n/AXIAL_DIRECTION=-Y\r\n! /OBJFILE=\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment RPV\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Coda\r\n/NAME=RPV\r\n/REFERENCE_OBJECT=R.ASIS+L.ASIS+R.PSIS+L.PSIS+Segment Depth\r\n/REFERENCE_OBJECT_NAMES=RIAS+LIAS+SCRM+SCRM+RPV_Segment_Depth\r\n/REFERENCE_OBJECT_TYPES=TARGET+TARGET+LANDMARK+LANDMARK+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=RIAS+LIAS+RIPS+LIPS\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=PelvisWrtAsis.v3g\r\n! /COLFILE=\r\n/DEPTH=0.0965489\r\n;\r\n\r\n!\r\n! Segment RTA\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=RTA\r\n/REFERENCE_OBJECT=Additional Object+Additional Plane+Proximal Joint+Distal Joint+Segment Depth+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=SXS+Anterior+TV2+TV7+RTA_Segment_Depth+RTA_Distal_Radius+RTA_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=TARGET++TARGET+TARGET+METRIC+METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=SJN+SXS+TV2+TV7\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n/KINEMATIC_ONLY=TRUE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=180\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=-0.5\r\n/GRAPHICS_TRANSLATE_Y=1\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=thoraciccerviclet12toacromium_noneck.obj\r\n/COLFILE=thoraciccerviclet12toacromium_noneck.mtl\r\n/DEPTH=0.1\r\n;\r\n\r\n!\r\n! Segment RTH\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=RTH\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=RIGHT_HIP+RFLE+RFME+++RTH_Distal_Radius+RTH_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=LANDMARK+TARGET+TARGET+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=LANDMARK+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=RIGHT_HIP+RFLE+RFME+RFTC\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=rthigh.v3g\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment LTH\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=LTH\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=LEFT_HIP+LFLE+LFME+++LTH_Distal_Radius+LTH_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=LANDMARK+TARGET+TARGET+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=LANDMARK+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=LEFT_HIP+LFLE+LFME+LFTC\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=LThigh.v3g\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment RSK\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=RSK\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=RSK_PROX+RFAL+RTAM+++RSK_Distal_Radius+RSK_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=LANDMARK+TARGET+TARGET+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=RFAL+RFAX+RTAM+RTTC\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=rshank.v3g\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment LSK\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=LSK\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=LSK_PROX+LFAL+LTAM+++LSK_Distal_Radius+LSK_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=LANDMARK+TARGET+TARGET+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=LFAL+LFAX+LTAM+LTTC\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=Lshank.v3g\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment RFT\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=RFT\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=RANK+RFM5+RFM1+++RFT_Distal_Radius+RFT_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=LANDMARK+TARGET+TARGET+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=RFCC+RFM1+RFM2+RFM5\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=rfoot.v3g\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment LFT\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=LFT\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Medial Distal+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=LANK+LFM5+LFM1+++LFT_Distal_Radius+LFT_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=LANDMARK+TARGET+TARGET+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=LFCC+LFM1+LFM2+LFM5\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n! /KINEMATIC_ONLY=FALSE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n! /MASS=\r\n! /GEOMETRY=\r\n! /PROX_TO_CG_AXIAL=\r\n! /PROX_TO_CG_ML=\r\n! /PROX_TO_CG_AP=\r\n! /IXX=\r\n! /IYY=\r\n! /IZZ=\r\n/AP_DIRECTION=+X\r\n/AXIAL_DIRECTION=+Y\r\n/OBJFILE=Lfoot.v3g\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment RMF\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=RMF\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Distal Joint+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=RFCC+RFM5+RFT_DIST+++RMF_Distal_Radius+RMF_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=TARGET+TARGET+LANDMARK+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=RFCC+RFM1+RFM2+RFM5\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n/KINEMATIC_ONLY=TRUE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n/MASS=0.000000\r\n! /GEOMETRY=\r\n/PROX_TO_CG_AXIAL=0.5*RMF_SEG_LENGTH\r\n/PROX_TO_CG_ML=0*RMF_SEG_LENGTH\r\n/PROX_TO_CG_AP=0*RMF_SEG_LENGTH\r\n/IXX=0\r\n/IYY=0\r\n/IZZ=0\r\n/AP_DIRECTION=+Y\r\n/AXIAL_DIRECTION=-X\r\n! /OBJFILE=\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Segment LMF\r\n!\r\nHYBRID_SEGMENT\r\n! /CALIBRATION_FILE=\r\n/TYPE=Visual_3D\r\n/NAME=LMF\r\n/REFERENCE_OBJECT=Proximal Joint+Lateral Distal+Distal Joint+Additional Object+Additional Plane+Distal Radius+Proximal Radius\r\n/REFERENCE_OBJECT_NAMES=LFCC+LFM5+LFT_DIST+++LMF_Distal_Radius+LMF_Proximal_Radius\r\n/REFERENCE_OBJECT_TYPES=TARGET+TARGET+LANDMARK+++METRIC+METRIC\r\n/USE_CAL_TARGETS_FOR_TRACKING=FALSE\r\n/TRACKING_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TRACKING_NAMES=LFCC+LFM1+LFM2+LFM5\r\n! /USE_OPTIMAL_TRACKING=TRUE\r\n/KINEMATIC_ONLY=TRUE\r\n! /STATIC_SEGMENT=FALSE\r\n/GRAPHICS_ROT_X=0\r\n/GRAPHICS_ROT_Y=0\r\n/GRAPHICS_ROT_Z=0\r\n/GRAPHICS_SCALE_X=1\r\n/GRAPHICS_SCALE_Y=1\r\n/GRAPHICS_SCALE_Z=1\r\n/GRAPHICS_TRANSLATE_X=0\r\n/GRAPHICS_TRANSLATE_Y=0\r\n/GRAPHICS_TRANSLATE_Z=0\r\n! /GRAPHICS_UNIT_SCALE=1.000000\r\n/MASS=0.000000\r\n! /GEOMETRY=\r\n/PROX_TO_CG_AXIAL=0.5*LMF_SEG_LENGTH\r\n/PROX_TO_CG_ML=0*LMF_SEG_LENGTH\r\n/PROX_TO_CG_AP=0*LMF_SEG_LENGTH\r\n/IXX=0\r\n/IYY=0\r\n/IZZ=0\r\n/AP_DIRECTION=+Y\r\n/AXIAL_DIRECTION=-X\r\n! /OBJFILE=\r\n! /COLFILE=\r\n! /DEPTH=\r\n;\r\n\r\n!\r\n! Digitizing Wand Configuration\r\n!\r\nHYBRID_DIGITIZING_WAND\r\n! /CALIBRATION_FILE=\r\n/WAND_ORIENTATION_MARKER1=\r\n/WAND_ORIENTATION_MARKER2=\r\n! /WAND_ORIENTATION_MARKER3=\r\n! /OFFSET_X=0\r\n! /OFFSET_Y=0\r\n/OFFSET_Z=-0.127\r\n! /OFFSET_X2=0\r\n! /OFFSET_Y2=0\r\n! /OFFSET_Z2=0\r\n! /WAND_HAS_SPRING=TRUE\r\n! /WAND_TRIGGER_MARKER1=\r\n! /WAND_TRIGGER_MARKER2=\r\n! /WAND_TRACKING_MARKERS=\r\n;\r\n!\r\n! Landmarks\r\nAdd_Landmark\r\n/LANDMARK_NAME=Lab_Origin\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=LAB\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n! /MCS_ML=0.0\r\n! /MCS_AP=0.0\r\n! /MCS_AXIAL=0.0\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=Lab_AX\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=LAB\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n! /MCS_ML=0.0\r\n! /MCS_AP=0.0\r\n/MCS_AXIAL=0.1\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=Lab_ML\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=LAB\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n/MCS_ML=0.1\r\n! /MCS_AP=0.0\r\n! /MCS_AXIAL=0.0\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=Pel_ML\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=RPV\r\n/TARGET_TYPES=LANDMARK\r\n/TARGET_NAMES=Lab_Origin\r\n/MCS_ML=0.1\r\n! /MCS_AP=0.0\r\n! /MCS_AXIAL=0.0\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=Pel_ML_Proj\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=LANDMARK+LANDMARK++LANDMARK\r\n/TARGET_NAMES=Lab_Origin+Lab_ML++Pel_ML\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=VLab_ML\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=LANDMARK+LANDMARK\r\n/TARGET_NAMES=Lab_Origin+Pel_ML_Proj\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=0.1\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=SCRM\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET\r\n/TARGET_NAMES=RIPS+LIPS\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=0.5\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RIGHT_HIP\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=RPV\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n/MCS_ML=0.36*ASIS_Distance*RPV_ML_Direction\r\n/MCS_AP=-0.19*ASIS_Distance*RPV_AP_Direction\r\n/MCS_AXIAL=-0.30*ASIS_Distance*RPV_Axial_Direction\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=LEFT_HIP\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=RPV\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n/MCS_ML=-0.36*ASIS_Distance*RPV_ML_Direction\r\n/MCS_AP=-0.19*ASIS_Distance*RPV_AP_Direction\r\n/MCS_AXIAL=-0.30*ASIS_Distance*RPV_Axial_Direction\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RPV_AX\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=RPV\r\n/TARGET_TYPES=TARGET\r\n/TARGET_NAMES=LV5\r\n! /MCS_ML=0.0\r\n! /MCS_AP=0.0\r\n/MCS_AXIAL=-0.05\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RTA_OR\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=RTA\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n! /MCS_ML=0.0\r\n! /MCS_AP=0.0\r\n! /MCS_AXIAL=0.0\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RTA_ML\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n! /CALIBRATION_ONLY=FALSE\r\n! /USE_TARGETS=FALSE\r\n/SEGMENT_NAME=RTA\r\n! /TARGET_TYPES=\r\n! /TARGET_NAMES=\r\n/MCS_ML=0.5\r\n! /MCS_AP=0.0\r\n! /MCS_AXIAL=0.0\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RKNE\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET\r\n/TARGET_NAMES=RFLE+RFME\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=0.5\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RANK\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET\r\n/TARGET_NAMES=RFAL+RTAM\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=0.5\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RTTC_PROJ\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TARGET_NAMES=RFAX+RFAL+RTAM+RTTC\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RSK_PROX\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=LANDMARK+LANDMARK++LANDMARK\r\n/TARGET_NAMES=RANK+RTTC_PROJ++RKNE\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=LKNE\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET\r\n/TARGET_NAMES=LFME+LFLE\r\n/MCS_ML=-999999\r\n/MCS_AP=-999999\r\n/MCS_AXIAL=0.5\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=LANK\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n/USE_PERCENTAGE=TRUE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET\r\n/TARGET_NAMES=LTAM+LFAL\r\n/MCS_ML=-999999\r\n/MCS_AP=-999999\r\n/MCS_AXIAL=0.5\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=LTTC_PROJ\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TARGET_NAMES=LFAL+LTAM+LFAX+LTTC\r\n/MCS_ML=-999999\r\n/MCS_AP=-999999\r\n/MCS_AXIAL=-999999\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=LSK_PROX\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=LANDMARK+LANDMARK++LANDMARK\r\n/TARGET_NAMES=LANK+LTTC_PROJ++LKNE\r\n/MCS_ML=-999999\r\n/MCS_AP=-999999\r\n/MCS_AXIAL=-999999\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=RFT_DIST\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TARGET_NAMES=RFCC+RFM5+RFM1+RFM2\r\n/MCS_ML=\r\n/MCS_AP=\r\n/MCS_AXIAL=\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\nAdd_Landmark\r\n/LANDMARK_NAME=LFT_DIST\r\n! /CALIBRATION_FILE=\r\n! /USER_GENERATED=TRUE\r\n! /USE_PERCENTAGE=FALSE\r\n/CALIBRATION_ONLY=TRUE\r\n/USE_TARGETS=TRUE\r\n! /SEGMENT_NAME=\r\n/TARGET_TYPES=TARGET+TARGET+TARGET+TARGET\r\n/TARGET_NAMES=LFCC+LFM1+LFM5+LFM2\r\n/MCS_ML=-999999\r\n/MCS_AP=-999999\r\n/MCS_AXIAL=-999999\r\n! /LANDMARK_LOCATION=\r\n! /REFERENCE_LOCATION_TYPE=\r\n! /REFERENCE_LOCATION_NAME=\r\n! /USE_REFERENCE_LOCATION=FALSE\r\n;\r\n!\r\n! Muscles\r\n!\r\n"
+};
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { mdh: '', v3s: '', mdhName: 'model.mdh' };
+  var today = new Date().toISOString().slice(0, 10);
+
+  // links back to the tutorial (docs.primamotion.tech)
+  var DOCS = 'https://docs.primamotion.tech/#th-visual3d';
+  var DOCREF = {
+    c3d: [['m01', 'โมดูล 1 · ภาพรวมและ static trial'], ['m02', 'โมดูล 2 · segment และ landmark'], ['m03', 'โมดูล 3 · template, มวล/ส่วนสูง']],
+    mdh: [['m02', 'โมดูล 2 · segment และ landmark'], ['m03', 'โมดูล 3 · template, มวล/ส่วนสูง']],
+    pipe: [['m04', 'โมดูล 4 · ผูกโมเดลกับ movement trial'], ['m05', 'โมดูล 5 · Interpolate และ filter'], ['m06', 'โมดูล 6 · joint angle และ export']],
+    check: [['m03', 'โมดูล 3 · ตรวจโมเดลหลังใช้ template']],
+    log: [['m02', 'โมดูล 2 · segment และ landmark'], ['m03', 'โมดูล 3 · ตรวจโมเดล']]
+  };
+  function renderDocRef(tab) {
+    var el = $('docref'); el.textContent = '';
+    var b = document.createElement('b'); b.textContent = 'อ่านบทเรียนที่เกี่ยวข้อง:'; el.appendChild(b);
+    (DOCREF[tab] || []).forEach(function (d) {
+      var a = document.createElement('a'); a.href = DOCS + '-' + d[0]; a.target = '_blank'; a.rel = 'noopener'; a.textContent = d[1] + ' ↗'; el.appendChild(a);
+    });
+  }
+  // tabs
+  var tabs = ['c3d', 'mdh', 'pipe', 'check', 'log'];
+  function showTab(n) {
+    tabs.forEach(function (t) { var on = t === n; $('t-' + t).setAttribute('aria-selected', on); $('p-' + t).hidden = !on; });
+    try { history.replaceState(null, '', '#' + n); } catch (e) {}
+    renderDocRef(n);
+  }
+  tabs.forEach(function (t) { $('t-' + t).addEventListener('click', function () { showTab(t); }); });
+
+  // label grid
+  var grid = $('lblGrid');
+  ML.LABEL_KEYS.forEach(function (k) {
+    var l = document.createElement('label'); l.appendChild(document.createTextNode(k));
+    var i = document.createElement('input'); i.type = 'text'; i.id = 'lb_' + k; i.value = k; i.autocomplete = 'off'; i.spellcheck = false;
+    l.appendChild(i); grid.appendChild(l); i.addEventListener('input', renderMdh);
+  });
+  // quantities
+  ML.QUANTITIES.forEach(function (q) {
+    var d = document.createElement('div'); d.className = 'chk';
+    var c = document.createElement('input'); c.type = 'checkbox'; c.id = 'pq_' + q.id; c.checked = q.id === 'ANGLE';
+    var l = document.createElement('label'); l.htmlFor = c.id; l.textContent = q.label + (q.kinetic ? ' *' : '');
+    d.appendChild(c); d.appendChild(l); $('pQuant').appendChild(d); c.addEventListener('input', renderPipe);
+  });
+  // joints (grouped)
+  Object.keys(ML.JOINT_GROUPS).forEach(function (g) {
+    var hd = document.createElement('div'); hd.className = 'hint'; hd.style.gridColumn = '1 / -1'; hd.style.marginTop = '6px'; hd.textContent = ML.JOINT_GROUPS[g]; $('pJoints').appendChild(hd);
+    ML.JOINTS.filter(function (j) { return j.group === g; }).forEach(function (j) {
+      var d = document.createElement('div'); d.className = 'chk';
+      var c = document.createElement('input'); c.type = 'checkbox'; c.id = 'pj_' + j.id; c.checked = !!j.def;
+      var l = document.createElement('label'); l.htmlFor = c.id; l.textContent = j.name + ' (' + j.seg + '/' + j.ref + ')';
+      d.appendChild(c); d.appendChild(l); $('pJoints').appendChild(d); c.addEventListener('input', renderPipe);
+    });
+  });
+  function setJoints(fn) { ML.JOINTS.forEach(function (j) { $('pj_' + j.id).checked = fn(j); }); renderPipe(); }
+  $('pjAll').addEventListener('click', function () { setJoints(function () { return true; }); });
+  $('pjLeg').addEventListener('click', function () { setJoints(function (j) { return !!j.def; }); });
+  $('pjNone').addEventListener('click', function () { setJoints(function () { return false; }); });
+
+  function val(id) { var v = $(id).value.trim(); return v === '' ? undefined : Number(v); }
+  function listLabels(s) { return String(s || '').split(/[\s,;]+/).filter(Boolean); }
+  function prefix() { var s = $('pfxSel').value; return s === '__custom' ? $('pfxCustom').value.trim() : s; }
+
+  function msgs(ul, arr) {
+    ul.textContent = '';
+    arr.forEach(function (m) {
+      var li = document.createElement('li'); li.className = m.level; li.appendChild(document.createTextNode(m.text));
+      if (m.sub) { var s = document.createElement('small'); s.textContent = m.sub; li.appendChild(s); }
+      ul.appendChild(li);
+    });
+  }
+  function chips(el, arr) {
+    el.textContent = '';
+    arr.forEach(function (c) { var s = document.createElement('span'); s.className = 'chip ' + (c[1] || ''); s.textContent = c[0]; el.appendChild(s); });
+  }
+
+  function renderMdh() {
+    $('pfxCustomWrap').hidden = $('pfxSel').value !== '__custom';
+    var bad = [], o = { prefix: prefix(), stamp: today, labels: {} };
+    var pairs = [['mass', 'mass', 1, 'มวล'], ['height', 'height', 1, 'ส่วนสูง'], ['pelvisDepth', 'pelvisDepth', 1, 'ความลึก pelvis']];
+    pairs.forEach(function (p) { var v = val(p[0]); if (v !== undefined) { if (!(v > 0)) bad.push(p[3] + 'ต้องมากกว่า 0'); else o[p[1]] = v; } });
+    var mm = [['markerD', 'markerRadius', 2000, 'เส้นผ่านศูนย์กลาง marker'], ['kneeR', 'kneeR', 1000, 'เข่าขวา'], ['kneeL', 'kneeL', 1000, 'เข่าซ้าย'], ['ankleR', 'ankleR', 1000, 'ข้อเท้าขวา'], ['ankleL', 'ankleL', 1000, 'ข้อเท้าซ้าย']];
+    mm.forEach(function (p) { var v = val(p[0]); if (v !== undefined) { if (!(v > 0)) bad.push(p[3] + 'ต้องมากกว่า 0'); else o[p[1]] = v / p[2]; } });
+    ML.LABEL_KEYS.forEach(function (k) { var v = $('lb_' + k).value.trim(); if (v) o.labels[k] = v; });
+    var text = ML.generateMdh(o), pf = o.prefix;
+    state.mdh = text;
+    state.mdhName = 'ConvLower16_' + (pf ? 'prefixed' : 'noprefix') + '_' + today.replace(/-/g, '') + '.mdh';
+    $('mdhOut').value = text; $('mdhName').textContent = state.mdhName;
+    var labs = listLabels($('c3dLabels').value);
+    var v = ML.validateMdh(text, { labels: labs.length ? labs : null });
+    var list = [];
+    bad.forEach(function (b) { list.push({ level: 'error', text: b + ' (ใช้ค่า placeholder แทน)' }); });
+    v.errors.forEach(function (e) { list.push({ level: 'error', text: e }); });
+    v.warnings.forEach(function (e) { list.push({ level: 'warn', text: e }); });
+    var meas = v.placeholders.filter(function (p) { return p.tag === 'MEASURE'; });
+    if (meas.length) list.push({ level: 'warn', text: 'ยังเป็นค่า placeholder ที่ต้องวัดจริง: ' + meas.map(function (p) { return p.name; }).join(', ') });
+    var chk = v.placeholders.filter(function (p) { return p.tag === 'CHECK'; });
+    if (chk.length) list.push({ level: 'unknown', text: 'ต้องยืนยันใน build log: ' + chk.map(function (p) { return p.name; }).join(', ') });
+    if (!labs.length) list.push({ level: 'unknown', text: 'ยังไม่ได้วางรายการ label จาก C3D จึงไม่ได้ตรวจว่า marker มีครบ' });
+    if (!v.errors.length) list.unshift({ level: 'ok', text: 'โครงสร้างผ่านการตรวจ: จำนวนรายการ, ชื่อ, การอ้างอิง landmark/metric (ไม่ได้แปลว่า build ผ่านใน Visual3D)' });
+    msgs($('mdhMsgs'), list);
+    chips($('mdhChips'), [[v.errors.length + ' error', v.errors.length ? 'err' : 'ok'], [v.warnings.length + ' warning', v.warnings.length ? 'warn' : 'ok'], [meas.length + ' ค่าที่ต้องวัด', meas.length ? 'warn' : 'ok'],
+      [v.info.segments.length + ' segments · ' + v.info.landmarks + ' landmarks · ' + v.info.metrics + ' metrics', '']]);
+    if (!$('pModel').dataset.touched) $('pModel').value = state.mdhName;
+    state.subject = { mass: o.mass === undefined ? ML.DEFAULTS.mass : o.mass, height: o.height === undefined ? ML.DEFAULTS.height : o.height };
+    renderPipe();
+  }
+
+  function pipeOpts() {
+    var j = ML.JOINTS.filter(function (x) { return $('pj_' + x.id).checked; }).map(function (x) { return x.id; });
+    var s = state.subject || ML.DEFAULTS;
+    return { staticFile: $('pStatic').value.trim(), modelFile: $('pModel').value.trim(), motionFiles: $('pMotion').value, fileNew: $('pNew').checked,
+      setSubject: $('pSet').checked, mass: s.mass, height: s.height, lowpass: $('pLow').checked, cutoff: $('pCut').value, reflected: $('pRef').value, buffer: $('pRef').value,
+      interpolateNote: $('pInterp').checked, cardan: $('pCardan').value, joints: j, exportMat: $('pMat').checked, workspaceOnly: $('pWs').checked, customJoints: $('pCustom').value, quantities: ML.QUANTITIES.filter(function (q) { return $('pq_' + q.id).checked; }).map(function (q) { return q.id; }), resolution: $('pRes').value, normalize: $('pNorm').checked, exportFile: $('pMatName').value.trim(), stamp: today };
+  }
+  function renderPipe() {
+    var ws = $('pWs').checked; ['pStatic', 'pModel', 'pMotion', 'pNew', 'pSet'].forEach(function (id) { $(id).disabled = ws; });
+    var o = pipeOpts(), t = ML.generateV3s(o); state.v3s = t; $('pOut').value = t;
+    var m = ML.lintPipeline(o).map(function (x) { return { level: x.level === 'error' ? 'error' : 'warn', text: x.text }; });
+    if (!m.length) m.push({ level: 'ok', text: 'ลำดับคำสั่งไม่พบปัญหาจากกฎที่ตรวจ (ไม่ได้แปลว่ารันผ่านใน Visual3D)' });
+    msgs($('pMsgs'), m);
+  }
+  function renderCheck() {
+    var t = $('ckText').value;
+    if (!t.trim()) { msgs($('ckMsgs'), [{ level: 'unknown', text: 'วางเนื้อหา .mdh ทางซ้ายเพื่อเริ่มตรวจ' }]); chips($('ckChips'), []); return; }
+    var labs = listLabels($('ckLabels').value), v = ML.validateMdh(t, { labels: labs.length ? labs : null }), list = [];
+    v.errors.forEach(function (e) { list.push({ level: 'error', text: e }); });
+    v.warnings.forEach(function (e) { list.push({ level: 'warn', text: e }); });
+    if (!v.errors.length) list.unshift({ level: 'ok', text: 'ไม่พบ error จากกฎที่ตรวจ' });
+    if (!v.info.segments.length) list.push({ level: 'warn', text: 'ไม่พบ HYBRID_SEGMENT ในข้อความที่วาง — ใช่ไฟล์ .mdh หรือไม่' });
+    msgs($('ckMsgs'), list);
+    chips($('ckChips'), [[v.errors.length + ' error', v.errors.length ? 'err' : 'ok'], [v.warnings.length + ' warning', v.warnings.length ? 'warn' : 'ok'],
+      [v.info.segments.length + ' segments · ' + v.info.landmarks + ' landmarks · ' + v.info.metrics + ' metrics', '']]);
+  }
+  function renderLog() {
+    var t = $('lgText').value;
+    if (!t.trim()) { msgs($('lgMsgs'), [{ level: 'unknown', text: 'วาง build log ทางซ้ายเพื่อเริ่มวิเคราะห์' }]); chips($('lgChips'), []); return; }
+    var r = ML.analyzeLog(t), e = r.filter(function (x) { return x.level === 'error'; }).length, u = r.filter(function (x) { return x.level === 'unknown'; }).length;
+    msgs($('lgMsgs'), r.length ? r.map(function (x) { return { level: x.level, text: x.title + ' — บรรทัด ' + x.line + ': ' + x.text, sub: x.hint }; }) : [{ level: 'ok', text: 'ไม่พบรูปแบบข้อผิดพลาดที่รู้จัก (ไม่ได้แปลว่าไม่มีปัญหา)' }]);
+    chips($('lgChips'), [[e + ' error ที่รู้จัก', e ? 'err' : 'ok'], [u + ' ยังไม่มีคำอธิบาย', u ? 'warn' : 'ok']]);
+  }
+
+  function download(name, text) {
+    var b = new Blob([text], { type: 'text/plain;charset=utf-8' }), a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function copy(text, btn) {
+    var done = function () { var o = btn.textContent; btn.textContent = 'คัดลอกแล้ว'; setTimeout(function () { btn.textContent = o; }, 1200); };
+    try { navigator.clipboard.writeText(text).then(done, function () { fallback(); }); } catch (e) { fallback(); }
+    function fallback() { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) {} t.remove(); }
+  }
+
+  ['pfxSel', 'pfxCustom', 'mass', 'height', 'markerD', 'pelvisDepth', 'kneeR', 'kneeL', 'ankleR', 'ankleL', 'c3dLabels'].forEach(function (id) { $(id).addEventListener('input', renderMdh); });
+  ['pStatic', 'pMotion', 'pNew', 'pSet', 'pLow', 'pCut', 'pRef', 'pInterp', 'pCardan', 'pMat', 'pMatName', 'pRes', 'pNorm', 'pWs', 'pCustom'].forEach(function (id) { $(id).addEventListener('input', renderPipe); });
+  $('pModel').addEventListener('input', function () { $('pModel').dataset.touched = '1'; renderPipe(); });
+  $('ckText').addEventListener('input', renderCheck); $('ckLabels').addEventListener('input', renderCheck); $('lgText').addEventListener('input', renderLog);
+  $('mdhDl').addEventListener('click', function () { download(state.mdhName, state.mdh); });
+  $('mdhCp').addEventListener('click', function (e) { copy(state.mdh, e.currentTarget); });
+  $('pDl').addEventListener('click', function () { download('pipeline_' + today.replace(/-/g, '') + '.v3s', state.v3s); });
+  $('pCp').addEventListener('click', function (e) { copy(state.v3s, e.currentTarget); });
+
+
+  // ---------- tab 1: C3D -> mdh (IOR base) ----------
+  var C = { c3d: null, segs: [], sel: {}, out: null };
+  var BASE = ML.BASE_IOR.text;
+  function numOr(id) { var v = $(id).value.trim(); return v === '' ? undefined : Number(v); }
+  function fmt(x) { return Math.abs(x) >= 1 ? x.toFixed(3) : x.toFixed(4); }
+  function initSegs(labels) {
+    C.segs = ML.baseSegments(BASE, labels);
+    var box = $('segList'); box.textContent = '';
+    C.segs.forEach(function (s) {
+      var d = document.createElement('div'), c = document.createElement('input'), l = document.createElement('label');
+      d.className = 'chk'; c.type = 'checkbox'; c.id = 'sg_' + s.name; l.htmlFor = c.id;
+      l.textContent = s.name + ' — ' + s.desc; d.appendChild(c); d.appendChild(l);
+      var sm = document.createElement('small'); sm.id = 'sgm_' + s.name; d.appendChild(sm);
+      box.appendChild(d); c.addEventListener('input', function () { onSeg(s.name, c.checked); });
+    });
+  }
+  function segByName(n) { return C.segs.filter(function (s) { return s.name === n; })[0]; }
+  function applySel() {
+    C.segs.forEach(function (s) {
+      var c = $('sg_' + s.name); c.checked = !!C.sel[s.name];
+      var sm = $('sgm_' + s.name), d = c.parentNode;
+      sm.textContent = s.missing.length ? ' ขาด marker: ' + s.missing.join(', ') : '';
+      d.className = 'chk' + (s.missing.length ? ' miss' : '');
+    });
+  }
+  function onSeg(name, on) {
+    C.sel[name] = on;
+    if (on) { (segByName(name).requires || []).forEach(function (r) { C.sel[r] = true; }); }
+    else { var ch = true; while (ch) { ch = false; C.segs.forEach(function (s) { if (C.sel[s.name] && s.requires.some(function (r) { return !C.sel[r]; })) { C.sel[s.name] = false; ch = true; } }); } }
+    applySel(); renderC3D();
+  }
+  function preset(kind) {
+    C.segs.forEach(function (s) { C.sel[s.name] = s.missing.length === 0; });
+    if (kind === 'lower') ML.LOWER_ONLY_REMOVE.forEach(function (n) { C.sel[n] = false; });
+    var ch = true; while (ch) { ch = false; C.segs.forEach(function (s) { if (C.sel[s.name] && s.requires.some(function (r) { return !C.sel[r]; })) { C.sel[s.name] = false; ch = true; } }); }
+    applySel(); renderC3D();
+  }
+  function loadC3D(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        C.c3d = ML.parseC3D(fr.result); C.name = file.name;
+        $('dropText').textContent = file.name + ' · ' + C.c3d.npts + ' markers';
+        initSegs(C.c3d.bare); preset('full');
+        var pw = $('pfxWrap'); pw.hidden = !C.c3d.prefix; $('cPfx').checked = false; $('cPfxLbl').textContent = 'ใส่ prefix "' + C.c3d.prefix + '" ให้ชื่อ marker ใน template (ยังไม่ทดสอบ — ปกติ Visual3D จัดการ prefix ผ่าน Subject Name Prefix)';
+        $('cF0').value = ''; $('cF1').value = '';
+      } catch (e) { C.c3d = null; initSegs(null); preset('full'); $('dropText').textContent = 'อ่านไฟล์ไม่ได้'; msgs($('c3dInfo'), [{ level: 'error', text: 'อ่าน C3D ไม่สำเร็จ: ' + e.message }]); return; }
+      renderC3D();
+    };
+    fr.onerror = function () { msgs($('c3dInfo'), [{ level: 'error', text: 'อ่านไฟล์ไม่สำเร็จ' }]); };
+    fr.readAsArrayBuffer(file);
+  }
+  function renderC3D() {
+    var list = [], info = [], bad = false;
+    var mass = numOr('cMass'), height = numOr('cHeight'), depth = numOr('cDepth');
+    [['มวล', mass], ['ส่วนสูง', height], ['ความลึก pelvis', depth]].forEach(function (p) { if (p[1] !== undefined && !(p[1] > 0)) { list.push({ level: 'error', text: p[0] + 'ต้องมากกว่า 0 (ใช้ค่า placeholder แทน)' }); } });
+    if (mass !== undefined && !(mass > 0)) mass = undefined; if (height !== undefined && !(height > 0)) height = undefined; if (depth !== undefined && !(depth > 0)) depth = undefined;
+    if (height !== undefined && height > 3) { list.push({ level: 'warn', text: 'ส่วนสูง ' + height + ' m ดูสูงผิดปกติ — ใส่เป็นเมตรหรือไม่?' }); }
+    if (mass !== undefined && mass < 20) list.push({ level: 'warn', text: 'มวล ' + mass + ' kg ดูต่ำผิดปกติ' });
+    var f0, f1, c = C.c3d;
+    if (c) {
+      var a = numOr('cF0'), b = numOr('cF1');
+      f0 = a !== undefined ? Math.max(0, Math.floor(a) - 1) : 0; f1 = b !== undefined ? Math.min(c.frames - 1, Math.floor(b) - 1) : c.frames - 1;
+      if (f0 > f1) { list.push({ level: 'error', text: 'ช่วง frame ไม่ถูกต้อง — ใช้ทั้งไฟล์' }); f0 = 0; f1 = c.frames - 1; }
+      var s = ML.c3dSummary(c, BASE, f0, f1);
+      info.push({ level: 'ok', text: c.npts + ' markers · ' + c.rate + ' Hz · ' + c.frames + ' frames · หน่วย ' + c.units + (c.subject ? ' · subject: ' + c.subject : '') + (c.prefix ? ' · prefix "' + c.prefix + '"' : ' · ไม่มี prefix') });
+      if (c.isStatic === 0) info.push({ level: 'warn', text: 'พารามิเตอร์ SUBJECTS:IS_STATIC = 0 — ไฟล์นี้อาจไม่ใช่ static trial' });
+      if (s.forward && s.right) info.push({ level: 'unknown', text: 'จาก ASIS/PSIS: คนหันหน้า ' + s.forward.axis + ' · ด้านขวา ' + s.right.axis + ' (lab frame) — ตรวจว่าแกนของ pelvis ใน Visual3D ตรงกับทิศนี้หลัง build' });
+      if (s.gaps.length) info.push({ level: 'warn', text: 'marker ที่หายบาง frame: ' + s.gaps.map(function (g) { return g.label + ' (' + g.valid + '/' + g.total + ')'; }).join(', ') });
+      s.warnings.forEach(function (w) { info.push({ level: 'warn', text: w }); });
+    } else info.push({ level: 'unknown', text: 'ยังไม่ได้เลือก C3D — สร้าง .mdh ได้ แต่จะไม่ตรวจว่า marker ครบและไม่มีค่าคาดหวัง' });
+    msgs($('c3dInfo'), info);
+    var removed = C.segs.filter(function (s) { return !C.sel[s.name]; }).map(function (s) { return s.name; });
+    var r;
+    try {
+      r = ML.buildFromBase({ baseText: BASE, removeSegments: removed, mass: mass, height: height, pelvisDepth: depth, c3d: c, f0: f0, f1: f1, applyPrefix: !!(c && c.prefix && $('cPfx').checked), prefix: c ? c.prefix : '', sourceName: ML.BASE_IOR.name, stamp: today });
+    } catch (e) { msgs($('cMsgs'), [{ level: 'error', text: 'สร้างไม่สำเร็จ: ' + e.message }]); return; }
+    C.out = r;
+    r.missing.forEach(function (m) { list.push({ level: 'error', text: 'ไม่พบ marker "' + m + '" ใน C3D (จำเป็นสำหรับ segment ที่เลือก)' }); });
+    r.validation.errors.forEach(function (e) { if (!/ไม่พบ marker/.test(e)) list.push({ level: 'error', text: e }); });
+    r.validation.warnings.forEach(function (e) { list.push({ level: 'warn', text: e }); });
+    r.notes.forEach(function (n) { list.push({ level: 'warn', text: n }); });
+    var meas = r.validation.placeholders.filter(function (p) { return p.tag === 'MEASURE'; }), chk = r.validation.placeholders.filter(function (p) { return p.tag === 'CHECK'; });
+    if (meas.length) list.push({ level: 'warn', text: 'ยังเป็นค่า placeholder ที่ต้องใส่ค่าจริง: ' + meas.map(function (p) { return p.name; }).join(', ') });
+    if (chk.length) list.push({ level: 'unknown', text: 'ค่าที่ยกมาจากไฟล์ต้นแบบ (ไม่ได้วัดจากผู้ถูกทดสอบนี้) ต้องยืนยัน: ' + chk.map(function (p) { return p.name; }).join(', ') });
+    if (c) { var un = c.bare.filter(function (m) { return r.required.indexOf(m) < 0; }); if (un.length) list.push({ level: 'unknown', text: 'marker ใน C3D ที่ template นี้ไม่ได้ใช้: ' + un.join(', ') }); }
+    if (!r.missing.length && !r.validation.errors.length) list.unshift({ level: 'ok', text: 'โครงสร้างผ่านการตรวจ: ชื่อ, จำนวนรายการ, การอ้างอิง' + (c ? ', marker ครบตาม C3D' : '') + ' (ไม่ได้แปลว่า build ผ่านใน Visual3D)' });
+    msgs($('cMsgs'), list);
+    var nErr = r.missing.length + r.validation.errors.length;
+    chips($('cChips'), [[nErr + ' error', nErr ? 'err' : 'ok'], [r.validation.warnings.length + ' warning', r.validation.warnings.length ? 'warn' : 'ok'], [meas.length + ' ค่าที่ต้องวัด', meas.length ? 'warn' : 'ok'],
+      [r.validation.info.segments.length + ' segments · ' + r.validation.info.landmarks + ' landmarks · ' + r.validation.info.metrics + ' metrics', '']]);
+    var ex = r.expected.map(function (e) { return { level: 'unknown', text: e.name + ' ≈ ' + fmt(e.value) + ' m', sub: e.basis }; });
+    msgs($('cExp'), ex.length ? ex : [{ level: 'unknown', text: 'ต้องมี C3D จึงจะคำนวณค่าคาดหวังได้' }]);
+    $('cOut').value = r.text;
+    var tag = !removed.length ? 'FullBody' : (removed.join() === ML.LOWER_ONLY_REMOVE.join() ? 'LowerBody' : 'Custom');
+    C.name = 'IOR_' + tag + '_' + today.replace(/-/g, '') + '.mdh'; $('cName').textContent = C.name;
+  }
+  initSegs(null); preset('full');
+  var dz = $('drop');
+  ['dragenter', 'dragover'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('over'); }); });
+  dz.addEventListener('drop', function (e) { var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) loadC3D(f); });
+  $('c3dFile').addEventListener('change', function (e) { var f = e.target.files[0]; if (f) loadC3D(f); });
+  ['cMass', 'cHeight', 'cDepth', 'cF0', 'cF1', 'cPfx'].forEach(function (id) { $(id).addEventListener('input', renderC3D); });
+  $('preFull').addEventListener('click', function () { preset('full'); });
+  $('preLower').addEventListener('click', function () { preset('lower'); });
+  $('cDl').addEventListener('click', function () { download(C.name, $('cOut').value); });
+  $('cCp').addEventListener('click', function (e) { copy($('cOut').value, e.currentTarget); });
+
+  renderC3D();
+
+  renderMdh(); renderCheck(); renderLog(); renderDocRef('c3d');
+  var h = (location.hash || '').slice(1); if (tabs.indexOf(h) >= 0) showTab(h);
+})();
+</script>
+</body>
+</html>

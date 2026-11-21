@@ -1,0 +1,4 @@
+node_modules/
+tests/local/
+*.c3d
+!model-lab/**/*.c3d

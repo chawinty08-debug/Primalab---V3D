@@ -107,8 +107,8 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
 <div class="wrap">
   <header>
     <h1>Model Builder</h1>
-    <p>อ่าน static C3D แล้วสร้าง Visual3D model template (.mdh) สำหรับ lower body 16 markers และจับคู่ label กับ motion file</p>
-    <p><a href="./old/">เครื่องมือเดิม: pipeline .v3s, ตรวจ .mdh, อ่าน build log</a></p>
+    <p>อ่าน static C3D แล้วสร้าง Visual3D model template (.mdh) สำหรับ lower body 16 markers จับคู่ label กับ motion file และสร้าง pipeline (.v3s)</p>
+    <p><a href="./old/">เครื่องมือเดิม: ตรวจ .mdh, อ่าน build log, pipeline รุ่นเดิม</a></p>
   </header>
   <div class="grid">
     <div class="col">
@@ -174,6 +174,48 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
         </div>
         <p class="hint">ช่องที่เว้นว่างจะใช้ค่า placeholder (แสดงเป็นตัวจาง) และถูกติดป้าย &lt;&lt;MEASURE&gt;&gt; ใน mdh</p>
       </section>
+
+      <section class="card" aria-labelledby="h8">
+        <h2 id="h8"><span class="tag">4</span> Pipeline (.v3s)</h2>
+        <label class="check" for="vWs"><input type="checkbox" id="vWs"> โหมด workspace: ใช้โมเดลที่ build และ assign ไว้แล้ว (ข้ามเปิดไฟล์/สร้างโมเดล/Build/Assign)</label>
+        <div class="row" style="margin-top:10px">
+          <label class="f" for="vStatic">ไฟล์ static<input type="text" id="vStatic" spellcheck="false" autocomplete="off"></label>
+          <label class="f" for="vModel">ไฟล์ .mdh<input type="text" id="vModel" spellcheck="false" autocomplete="off"></label>
+        </div>
+        <label class="f" for="vFolder" style="margin-top:10px">โฟลเดอร์ข้อมูลใน Windows (ไม่บังคับ) เช่น C:\Lab\Sub01
+          <input type="text" id="vFolder" spellcheck="false" autocomplete="off" placeholder="เว้นว่าง = ใช้ default data path ของ Visual3D"></label>
+        <p class="hint" id="vMotionLine"></p>
+        <label class="f" for="vExtra" style="margin-top:6px">ไฟล์ motion เพิ่มเติม (บรรทัดละไฟล์ ไม่ผ่านการตรวจในขั้น 1b)
+          <textarea id="vExtra" rows="2" spellcheck="false" placeholder="trial03.c3d" style="font-family:var(--f-mono);font-size:12.5px;width:100%;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);padding:6px 8px"></textarea></label>
+        <label class="check" for="vNew"><input type="checkbox" id="vNew" checked> เริ่มด้วย File_New</label>
+        <label class="check" for="vSet"><input type="checkbox" id="vSet" checked> Set_Subject_Weight/Height (ค่าจากขั้น 3)</label>
+        <label class="check" for="vTag"><input type="checkbox" id="vTag" checked> ติด tag MOTION ให้ไฟล์ motion และคำนวณเฉพาะไฟล์เหล่านั้น</label>
+        <label class="check" for="vLow"><input type="checkbox" id="vLow"> Lowpass_Filter (Butterworth) ให้ TARGET</label>
+        <div class="row" style="margin-top:8px">
+          <label class="f" for="vCut">cutoff (Hz)<input type="number" id="vCut" value="6" step="0.5" min="0.1"></label>
+          <label class="f" for="vRef">NUM_REFLECTED / buffer (เฟรม)<input type="number" id="vRef" value="6" step="1" min="0"></label>
+        </div>
+        <p class="hint">6 Hz เป็นตัวอย่างจาก wiki ไม่ใช่ค่าแนะนำ เลือกจาก residual analysis หรือ spectral content ของงาน · <a href="https://docs.primamotion.tech/#th-visual3d-m05-philosophy" target="_blank" rel="noopener">หลักคิดการ filter ↗</a></p>
+        <label class="check" for="vInterp"><input type="checkbox" id="vInterp" checked> ใส่หมายเหตุเรื่อง Interpolate (ยังไม่มี syntax ยืนยัน)</label>
+        <h2 style="margin:14px 0 6px">ข้อมูลที่คำนวณ</h2>
+        <div class="row" id="vQuant"></div>
+        <label class="f" for="vRes" style="margin-top:8px">Resolution coordinate system (moment/force/velocity)
+          <select id="vRes"><option value="parent">segment พ่อของ joint (ตาม wiki tutorial)</option><option value="lab">LAB</option></select></label>
+        <label class="check" for="vNorm"><input type="checkbox" id="vNorm"> Normalize kinetics (ค่า method ยังไม่ยืนยัน)</label>
+        <h2 style="margin:14px 0 6px">Joints <span class="tag" id="vSegTag"></span></h2>
+        <div class="row" id="vJoints"></div>
+        <label class="f" for="vCustom" style="margin-top:8px">Joint เพิ่มเอง (บรรทัดละ 1: ชื่อ, segment, reference) ต้องเป็น segment ที่มีใน mdh
+          <textarea id="vCustom" rows="2" spellcheck="false" placeholder="RFoot, RFT, LAB" style="font-family:var(--f-mono);font-size:12.5px;width:100%;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);padding:6px 8px"></textarea></label>
+        <div class="row" style="margin-top:8px">
+          <label class="f" for="vCardan">ลำดับ Cardan
+            <select id="vCardan"><option value="auto">อัตโนมัติตามแกน segment</option><option value="ZXY">Z-X-Y</option><option value="XYZ">X-Y-Z</option></select></label>
+          <label class="f" for="vMatName">ชื่อไฟล์ .mat<input type="text" id="vMatName" value="joint_data.mat" spellcheck="false" autocomplete="off"></label>
+        </div>
+        <p class="hint" id="vCardanHint"></p>
+        <label class="check" for="vNeg"><input type="checkbox" id="vNeg"> NEGATE แกน AP/Axial ของ joint ฝั่งซ้าย (ยังไม่ทดสอบ)</label>
+        <label class="check" for="vMat"><input type="checkbox" id="vMat"> ส่งออกผลเป็น .mat (Export_Data_To_Matfile)</label>
+        <p class="hint">บทเรียน: <a href="https://docs.primamotion.tech/#th-visual3d-m04" target="_blank" rel="noopener">โมดูล 4 ผูกโมเดลกับ movement trial ↗</a> · <a href="https://docs.primamotion.tech/#th-visual3d-m05" target="_blank" rel="noopener">โมดูล 5 Interpolate และ filter ↗</a> · <a href="https://docs.primamotion.tech/#th-visual3d-m06" target="_blank" rel="noopener">โมดูล 6 joint angle และ export ↗</a></p>
+      </section>
     </div>
 
     <div class="col">
@@ -208,6 +250,19 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
         <h2 id="h7">ความเหมาะสมของ tracking markers</h2>
         <div class="scroll"><table class="vals" id="trk"></table></div>
         <p class="hint">มุมที่ marker แรก ต่ำกว่า 15° หรือพื้นที่ต่ำกว่า 30 cm² ติดป้าย "อ่อน" (เกณฑ์ของพรีมเอง ไม่ใช่ของ Visual3D) segment ที่อ่อนจะวัดการหมุนรอบแกนยาวได้ไม่ดี</p>
+      </section>
+
+      <section class="card" aria-labelledby="h9">
+        <h2 id="h9"><span class="tag">5</span> ไฟล์ .v3s</h2>
+        <div id="vStatus" class="status" role="status"></div>
+        <ul class="msgs" id="vMsgs"></ul>
+        <div class="btns" style="margin-top:12px">
+          <button class="primary" id="vDl" type="button">ดาวน์โหลด .v3s</button>
+          <button class="ghost" id="vCp" type="button">คัดลอกข้อความ</button>
+          <span id="vCpMsg" class="hint" style="align-self:center;margin:0" aria-live="polite"></span>
+        </div>
+        <textarea class="out" id="vOut" readonly spellcheck="false" aria-label="ตัวอย่างไฟล์ v3s"></textarea>
+        <p class="hint">เปิดใน Visual3D: Pipeline → Workshop → Open แล้วรันทีละคำสั่ง (step) และเปิด halt on first error ในครั้งแรก ไฟล์เป็น DRAFT ยังไม่ได้รันใน Visual3D</p>
       </section>
     </div>
   </div>
@@ -293,7 +348,12 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     if (!prefix) prefix = c0;
     var bare = labels.map(function (l) { return prefix && l.indexOf(prefix) === 0 ? l.slice(prefix.length) : l; });
     var idx = {}; bare.forEach(function (l, i) { idx[l] = i; });
-    return { labels: labels, bare: bare, idx: idx, prefix: prefix, units: units, unitFactor: uf, rate: rate, frames: nfr, pts: pts, npts: npts, warnings: warnings, labInfo: labInfo, subjects: P['SUBJECTS:LABEL_PREFIXES'] || null };
+    // force platforms / analog (read-only info for the pipeline checks; not used by the mdh)
+    // header word 10 = analog samples per point frame
+    var fpUsed = first('FORCE_PLATFORM:USED', 0), analogRate = first('ANALOG:RATE', 0), analogUsed = first('ANALOG:USED', 0);
+    if (!analogRate && nan && rate) analogRate = rate * (H(10) || 1);
+    return { labels: labels, bare: bare, idx: idx, prefix: prefix, units: units, unitFactor: uf, rate: rate, frames: nfr, pts: pts, npts: npts, warnings: warnings, labInfo: labInfo, subjects: P['SUBJECTS:LABEL_PREFIXES'] || null,
+      forcePlates: +fpUsed || 0, analogRate: +analogRate || 0, analogUsed: +analogUsed || 0 };
   };
 
   // mean position (m) per marker over frames f0..f1 (0-based inclusive)
@@ -648,6 +708,189 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     return { buf: out, changed: done };
   };
 
+  // ---------- pipeline (.v3s) ----------
+  // Ported from ML.generateV3s / ML.lintPipeline in ./old/ (Model & Pipeline Lab). Changes vs old:
+  //  - joints are limited to segments that exist in the generated mdh (Lower 16: RPV, R/L TH, SK, FT)
+  //  - Cardan sequence follows the mdh segment axes (ML, AP, Axial) unless the user overrides it
+  //  - motion files come from step 1b (relabelled copies get the _relabeled.c3d name)
+  //  - optional data folder (full paths), MOTION tag so Compute_Model_Based_Data skips the static,
+  //    optional NEGATE for left-side joints, and checks against the C3D (sample rate, force plates)
+  // DRAFT output: not run in Visual3D. <<CHECK>> marks syntax/semantics that still need confirming.
+  PL.JOINTS = [
+    { id: 'RHip', seg: 'RTH', ref: 'RPV', side: 'R', label: 'Right hip' }, { id: 'RKnee', seg: 'RSK', ref: 'RTH', side: 'R', label: 'Right knee' },
+    { id: 'RAnkle', seg: 'RFT', ref: 'RSK', side: 'R', label: 'Right ankle' }, { id: 'LHip', seg: 'LTH', ref: 'RPV', side: 'L', label: 'Left hip' },
+    { id: 'LKnee', seg: 'LSK', ref: 'LTH', side: 'L', label: 'Left knee' }, { id: 'LAnkle', seg: 'LFT', ref: 'LSK', side: 'L', label: 'Left ankle' }
+  ];
+  PL.QUANTITIES = [
+    { id: 'ANGLE', fn: 'JOINT_ANGLE', suffix: 'Angle', label: 'Joint angle (Cardan)', kinetic: false },
+    { id: 'VELOCITY', fn: 'JOINT_VELOCITY', suffix: 'Velocity', label: 'Joint angular velocity', kinetic: false },
+    { id: 'MOMENT', fn: 'JOINT_MOMENT', suffix: 'Moment', label: 'Joint moment (inverse dynamics)', kinetic: true },
+    { id: 'FORCE', fn: 'JOINT_FORCE', suffix: 'Force', label: 'Joint reaction force', kinetic: true },
+    { id: 'POWER', fn: 'JOINT_POWER_SCALAR', suffix: 'Power', label: 'Joint power (scalar)', kinetic: true }
+  ];
+  // segment names and /MASS presence per HYBRID_SEGMENT in an mdh text
+  PL.mdhSegments = function (text) {
+    var out = {}, cur = null;
+    String(text || '').split(/\r?\n/).forEach(function (l) {
+      var t = l.trim();
+      if (!cur && t === 'HYBRID_SEGMENT') cur = {};
+      else if (cur) {
+        if (t === ';') { if (cur.name) out[cur.name] = { mass: !!cur.mass }; cur = null; }
+        else { var m = /^\/NAME=(\S+)/.exec(t); if (m) cur.name = m[1]; if (/^\/MASS=\S/.test(t)) cur.mass = true; }
+      }
+    });
+    return out;
+  };
+  // segment axes -> Cardan sequence ML, AP, Axial (flexion/extension first)
+  PL.cardanFor = function (ap, ax) {
+    var a = String(ap || '+X').slice(-1), x = String(ax || '+Y').slice(-1), ml = ['X', 'Y', 'Z'].filter(function (k) { return k !== a && k !== x; })[0];
+    return { seq: ml + a + x, ml: ml, ap: a, axial: x };
+  };
+  function splitList(s) { return (Array.isArray(s) ? s : String(s || '').split(/[\n,;+]+/)).map(function (x) { return String(x).trim(); }).filter(Boolean); }
+  PL.parseCustomJoints = function (text) {
+    var joints = [], errors = [];
+    String(text || '').split(/\r?\n/).forEach(function (ln, i) {
+      ln = ln.trim(); if (!ln || ln.charAt(0) === '#') return;
+      var p = ln.split(/[,;\t]+|\s+/).filter(Boolean);
+      if (p.length !== 3) { errors.push('Joint เพิ่มเอง บรรทัด ' + (i + 1) + ': ต้องเป็น ชื่อ, segment, reference (เช่น RToe, RTO, RFT)'); return; }
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(p[0])) { errors.push('Joint เพิ่มเอง บรรทัด ' + (i + 1) + ': ชื่อ "' + p[0] + '" ใช้ได้เฉพาะ A-Z a-z 0-9 _ และต้องขึ้นต้นด้วยตัวอักษร'); return; }
+      joints.push({ id: 'custom' + joints.length, seg: p[1], ref: p[2], side: /^L/.test(p[1]) ? 'L' : (/^R/.test(p[1]) ? 'R' : ''), custom: true, name: p[0] });
+    });
+    return { joints: joints, errors: errors };
+  };
+  function jointList(o) {
+    return (o.joints || []).map(function (id) { return PL.JOINTS.filter(function (x) { return x.id === id; })[0]; }).filter(Boolean)
+      .map(function (j) { return { id: j.id, name: j.id, seg: j.seg, ref: j.ref, side: j.side }; })
+      .concat(PL.parseCustomJoints(o.customJoints).joints);
+  }
+  function joinPath(folder, f) { folder = String(folder || '').trim(); return folder ? folder.replace(/[\\/]+$/, '') + '\\' + f : f; }
+  // motion list without duplicates and without the static trial (it is already the calibration file)
+  function motionList(o) {
+    var seen = {}, st = String(o.staticFile || '').toLowerCase();
+    return splitList(o.motionFiles).filter(function (m) { var k = m.toLowerCase(); if (seen[k] || k === st) return false; seen[k] = 1; return true; });
+  }
+  PL.motionList = motionList;
+
+  // o: {staticFile, modelFile, motionFiles[], folder, fileNew, setSubject, mass, height, workspaceOnly, tagMotion,
+  //     lowpass, cutoff, reflected, interpolateNote, quantities[], joints[], customJoints, resolution, normalize,
+  //     cardan ('ZXY'...), negateLeft, axes {ml, ap, axial}, exportMat, exportFile, stamp}
+  PL.generateV3s = function (o) {
+    var out = [], w = function (s) { out.push(s); };
+    function cmd(name, kv, comments) { (comments || []).forEach(function (c) { w('! ' + c); }); w(name); (kv || []).forEach(function (p) { w(p); }); w(';'); }
+    var st = joinPath(o.folder, o.staticFile || 'static.c3d'), motions = motionList(o).map(function (m) { return joinPath(o.folder, m); });
+    w('! Pipeline generated by PrimaLab Model Builder' + (o.stamp ? ' on ' + o.stamp : ''));
+    w('! DRAFT - UNTESTED in Visual3D. <<CHECK>> = verify against your Visual3D version / build log');
+    if (o.modelFile) w('! Model template: ' + o.modelFile);
+    w('!');
+    if (o.workspaceOnly) w('! Workspace mode: uses the model already built and assigned in the open workspace - no File_Open / model / Build_Model / Assign_Model_File.');
+    else {
+      if (o.fileNew) cmd('File_New');
+      cmd('File_Open', ['/FILE_NAME=' + st], o.folder ? [] : ['<<CHECK>> no folder given: Visual3D must find this file from its default data path']);
+      cmd('Create_Hybrid_Model', ['/CALIBRATION_FILE=' + st]);
+      cmd('Apply_Model_Template', ['/MODEL_TEMPLATE=' + joinPath(o.folder, o.modelFile || 'model.mdh'), '/CALIBRATION_FILE=' + st]);
+      if (o.setSubject) {
+        cmd('Set_Subject_Weight', ['/CALIBRATION_FILE=' + st, '/WEIGHT=' + num(o.mass)], ['<<CHECK>> unit of WEIGHT/HEIGHT (kg, m expected) not confirmed. Same values as the Mass/Height metrics in the mdh.']);
+        cmd('Set_Subject_Height', ['/CALIBRATION_FILE=' + st, '/HEIGHT=' + num(o.height)]);
+      }
+      cmd('Build_Model', ['/CALIBRATION_FILE=' + st, '/REBUILD_ALL_MODELS=FALSE']);
+      if (motions.length) {
+        motions.forEach(function (m, i) { cmd('File_Open', ['/FILE_NAME=' + m], i === 0 ? ['Motion trials (step 1b). Files marked _relabeled must be downloaded from step 1b first.'] : []); });
+        cmd('Assign_Model_File', ['/CALIBRATION_FILE=' + st, '/MOTION_FILE_NAMES=' + motions.join('+'), '/REMOVE_EXISTING_ASSIGNMENTS=FALSE']);
+        if (o.tagMotion) cmd('Assign_Tags_To_Files', ['/MOTION_FILE_NAMES=' + motions.join('+'), '/TAGS=MOTION'], ['Tag the motion trials so the computations below skip the static trial (syntax from wiki Pipeline_Breakpoint example)']);
+      }
+    }
+    var useTag = o.tagMotion && !o.workspaceOnly && motions.length;
+    cmd('Select_Active_File', ['/FILE_NAME=' + (useTag ? 'MOTION' : 'ALL_FILES')], useTag ? ['<<CHECK>> selecting files by TAG through /FILE_NAME= (wiki: a TAG can be the active file selection)'] : []);
+    if (o.interpolateNote) w('! Interpolate: parameter list not verified here. Add it with Pipeline dialog (F11) > Signal Process > Interpolate, then "Import Checked Signals".');
+    if (o.lowpass) {
+      cmd('Lowpass_Filter', ['/SIGNAL_TYPES=TARGET', '/SIGNAL_FOLDER=ORIGINAL', '/SIGNAL_NAMES=', '/RESULT_FOLDER=PROCESSED', '/RESULT_SUFFIX=', '/FILTER_CLASS=BUTTERWORTH',
+        '/FREQUENCY_CUTOFF=' + num(o.cutoff), '/NUM_REFLECTED=' + num(o.reflected), '/NUM_EXTRAPOLATED=0', '/TOTAL_BUFFER_SIZE=' + num(o.reflected), '/NUM_BIDIRECTIONAL_PASSES=1'],
+        ['Syntax from wiki Pipeline Overview. Cutoff is YOUR choice (wiki example uses 6 Hz), not a recommendation.',
+          '<<CHECK>> whether model tracking uses ORIGINAL or PROCESSED targets in your workflow (Settings > Use Processed Targets)']);
+    }
+    var seq = (o.cardan || 'ZXY').split(''), axes = o.axes || { ml: 'Z', ap: 'X', axial: 'Y' };
+    var qs = o.quantities || ['ANGLE'], names = [], jl = jointList(o), KIN = false;
+    PL.QUANTITIES.forEach(function (q) {
+      if (qs.indexOf(q.id) < 0) return;
+      if (q.kinetic) KIN = true;
+      var first = true;
+      jl.forEach(function (j) {
+        var nm = j.name + q.suffix, kv = ['/RESULT_NAME=' + nm, '/FUNCTION=' + q.fn, '/SEGMENT=' + j.seg], notes = [];
+        if (q.id === 'ANGLE' || q.id === 'VELOCITY') kv.push('/REFERENCE_SEGMENT=' + j.ref); else kv.push('! /REFERENCE_SEGMENT=LAB');
+        var res = (q.id === 'POWER' || q.id === 'ANGLE') ? '' : ((o.resolution || 'parent') === 'parent' ? j.ref : '');
+        kv.push('/RESOLUTION_COORDINATE_SYSTEM=' + res);
+        if (q.id === 'ANGLE') kv.push('/USE_CARDAN_SEQUENCE=TRUE'); else kv.push('! /USE_CARDAN_SEQUENCE=FALSE');
+        if (q.kinetic && o.normalize) kv.push('/NORMALIZATION=TRUE', '! /NORMALIZATION_METHOD='); else kv.push('! /NORMALIZATION=FALSE', '! /NORMALIZATION_METHOD=', '! /NORMALIZATION_METRIC=');
+        var neg = { X: false, Y: false, Z: false };
+        if (o.negateLeft && j.side === 'L' && (q.id === 'ANGLE' || q.id === 'VELOCITY')) { neg[axes.ap] = true; neg[axes.axial] = true; }
+        ['X', 'Y', 'Z'].forEach(function (a) { kv.push(neg[a] ? '/NEGATE' + a + '=TRUE' : '! /NEGATE' + a + '=FALSE'); });
+        if (q.id === 'ANGLE') kv.push('/AXIS1=' + seq[0], '/AXIS2=' + seq[1], '/AXIS3=' + seq[2]); else kv.push('! /AXIS1=X', '! /AXIS2=Y', '! /AXIS3=Z');
+        if (first) {
+          if (q.id === 'ANGLE') notes.push('Cardan ' + seq.join('-') + ' for segment axes ML=' + axes.ml + ', AP=' + axes.ap + ', Axial=' + axes.axial + ' (flexion/extension, ab/adduction, axial rotation). <<CHECK>> sign/order against the viewer');
+          else notes.push('<<CHECK>> ' + q.fn + ' uses the same Compute_Model_Based_Data parameter list; verify the first result in Visual3D (or save it once from Model > Compute Model Based Data and compare).');
+          if (q.id === 'MOMENT' || q.id === 'FORCE') notes.push('Joint = proximal end of SEGMENT (e.g. knee = RSK). ' + ((o.resolution || 'parent') === 'parent' ? 'Resolved in the proximal (parent) segment axes as in the wiki knee-moment tutorial.' : 'Resolved in LAB axes.') + ' Moment: Cardan not used (wiki FAQ: resolution CS or Cardan, not both).');
+          if (q.kinetic && o.normalize) notes.push('<<CHECK>> NORMALIZATION=TRUE: NORMALIZATION_METHOD value not documented in the wiki page. Confirm by saving once from the dialog.');
+          first = false;
+        }
+        if (neg.X || neg.Y || neg.Z) notes.push('<<CHECK>> left side: NEGATE on the AP and Axial axes so ab/adduction and axial rotation read anatomically like the right side. Untested; confirm signs in the viewer.');
+        cmd('Compute_Model_Based_Data', kv, notes); names.push(nm);
+      });
+    });
+    if (KIN) w('! Kinetics need: force platform data assigned to the foot segments (automatic by COFP distance <= Segment_to_COFP_Distance metric), mass set, and Settings > Use Processed Targets/Analogs chosen deliberately.');
+    if (o.exportMat && names.length) {
+      cmd('Export_Data_To_Matfile', ['/FILE_NAME=' + joinPath(o.folder, o.exportFile || 'joint_data.mat'), '/SIGNAL_TYPES=' + names.map(function () { return 'LINK_MODEL_BASED'; }).join('+'),
+        '/SIGNAL_NAMES=' + names.join('+'), '/SIGNAL_FOLDER=ORIGINAL', '/OUTPUT_NAMES=' + names.join('+')],
+        ['Syntax from wiki MATLAB page (single-signal example). <<CHECK>> multi-signal form and signal folder of the results']);
+    }
+    return out.join('\r\n') + '\r\n';
+  };
+
+  // ctx: {segments (PL.mdhSegments), staticRate, motions: [{name, ready, relabel, M}], massEntered, heightEntered}
+  PL.lintPipeline = function (o, ctx) {
+    ctx = ctx || {};
+    var msg = [], add = function (level, text) { msg.push({ level: level, text: text }); };
+    var all = splitList(o.motionFiles), motions = motionList(o), cj = PL.parseCustomJoints(o.customJoints), jl = jointList(o), segs = ctx.segments || null;
+    var stLow = String(o.staticFile || '').toLowerCase(), nonStatic = all.filter(function (m) { return m.toLowerCase() !== stLow; });
+    if (nonStatic.length < all.length) add('warn', 'ไฟล์ static (' + o.staticFile + ') อยู่ในรายการ motion ด้วย จึงตัดออก (static เป็น calibration file อยู่แล้ว)');
+    if (nonStatic.length > motions.length) add('warn', 'มีชื่อไฟล์ motion ซ้ำ จึงใส่ใน pipeline ครั้งเดียว');
+    var qs = o.quantities || [], kin = PL.QUANTITIES.some(function (q) { return q.kinetic && qs.indexOf(q.id) >= 0; });
+    cj.errors.forEach(function (e) { add('bad', e); });
+    if (o.workspaceOnly) add('warn', 'โหมด workspace: pipeline นี้ไม่ได้สร้าง/แนบโมเดลให้ ต้อง build โมเดลและ assign กับไฟล์ที่เปิดอยู่แล้ว');
+    if (!o.workspaceOnly && !o.staticFile) add('bad', 'ยังไม่ระบุไฟล์ static');
+    if (!o.workspaceOnly && !o.modelFile) add('bad', 'ยังไม่ระบุไฟล์ .mdh');
+    if (segs) jl.forEach(function (j) {
+      [j.seg, j.ref].forEach(function (s) { if (!segs[s]) add('bad', j.name + ': ไม่มี segment ' + s + ' ใน mdh นี้ (มี ' + Object.keys(segs).join(', ') + ')'); });
+    });
+    if (jl.length && !qs.length) add('warn', 'เลือก joint แต่ไม่ได้เลือกชนิดข้อมูล (angle/moment/...)');
+    if (qs.length && !jl.length) add('warn', 'ยังไม่ได้เลือก joint จึงไม่มี Compute_Model_Based_Data');
+    if (!o.workspaceOnly && jl.length && !motions.length) add('warn', 'ยังไม่มีไฟล์ motion: Compute_Model_Based_Data จะคำนวณบน static เท่านั้น เพิ่ม motion ในขั้น 1b หรือพิมพ์ชื่อไฟล์เพิ่ม');
+    (ctx.motions || []).forEach(function (m) {
+      if (!m.ready) add('warn', m.name + ': จับคู่ marker ยังไม่สมบูรณ์ในขั้น 1b จึงไม่ได้ใส่ใน pipeline');
+      else if (m.relabel) add('warn', m.name + ': pipeline ใช้ไฟล์ ' + m.pipeName + ' ต้องดาวน์โหลดไฟล์ที่ relabel แล้วจากขั้น 1b ไปไว้โฟลเดอร์เดียวกัน');
+      if (m.ready && kin && m.M && !m.M.forcePlates) add('bad', m.name + ': ไม่มี force platform ใน C3D (FORCE_PLATFORM:USED = 0) คำนวณ moment/force/power ไม่ได้');
+      if (m.ready && kin && m.M && m.M.forcePlates && m.M.analogRate && m.M.rate && m.M.analogRate <= m.M.rate) add('warn', m.name + ': analog (force plate) บันทึกที่ ' + m.M.analogRate + ' Hz เท่ากับ marker (' + m.M.rate + ' Hz) ตรวจว่าพอสำหรับเหตุการณ์ที่สนใจ เช่น ช่วงกระแทก');
+    });
+    if (o.lowpass) {
+      if (!(+o.cutoff > 0)) add('bad', 'cutoff ต้องมากกว่า 0');
+      var fs = ctx.staticRate || 0;
+      (ctx.motions || []).forEach(function (m) { if (m.ready && m.M && m.M.rate) fs = fs ? Math.min(fs, m.M.rate) : m.M.rate; });
+      if (fs && +o.cutoff >= fs / 2) add('bad', 'cutoff ' + o.cutoff + ' Hz ไม่ต่ำกว่า Nyquist (' + fs / 2 + ' Hz ที่ sample rate ' + fs + ' Hz)');
+      if (!(+o.reflected >= 0)) add('bad', 'NUM_REFLECTED ต้องไม่ติดลบ');
+      if (kin) add('warn', 'Lowpass_Filter ในนี้กรองเฉพาะ TARGET ส่วน analog/force ไม่ได้ถูก filter ถ้าต้องการ cutoff เดียวกันสำหรับ inverse dynamics ให้เพิ่มคำสั่งกรอง ANALOG เอง');
+    }
+    if (kin && !o.workspaceOnly && !motions.length) add('warn', 'เลือก kinetics แต่ไม่มีไฟล์ motion ต้องมี force platform ใน C3D ของ trial');
+    if (kin && !ctx.massEntered) add('warn', 'kinetics ใช้มวล subject แต่ Mass ในขั้น 3 ยังเป็นค่า placeholder');
+    if (kin && segs) {
+      var noMass = jl.map(function (j) { return j.seg; }).filter(function (s, i, a) { return a.indexOf(s) === i && segs[s] && !segs[s].mass; });
+      if (noMass.length) add('warn', 'segment ' + noMass.join(', ') + ' ไม่ได้กำหนด /MASS ใน mdh ตรวจมวลและ inertia ใน Segment Properties ก่อนใช้ moment/force/power');
+    }
+    if (kin && jl.length) add('warn', 'kinetics ยังไม่ได้ทดสอบ: ตรวจ force assignment (ลูกศรสีน้ำเงิน) และเทียบ moment กับค่าที่คาดก่อนใช้งาน');
+    if (o.setSubject && (!ctx.massEntered || !ctx.heightEntered)) add('warn', 'Set_Subject_' + [!ctx.massEntered ? 'Weight = ' + num(o.mass) + ' kg' : '', !ctx.heightEntered ? 'Height = ' + num(o.height) + ' m' : ''].filter(Boolean).join(', ') + ' เป็นค่า placeholder ใส่ค่าจริงในขั้น 3');
+    if (o.cardan && o.axesSeq && o.cardan !== o.axesSeq) add('warn', 'ลำดับ Cardan ' + o.cardan + ' ไม่ตรงกับแกน segment ใน mdh (ML-AP-Axial = ' + o.axesSeq + ') มุมแต่ละแกนจะไม่ใช่ flexion/ab-adduction/rotation ตามลำดับ');
+    if (o.negateLeft) add('warn', 'NEGATE ฝั่งซ้ายยังไม่ได้ทดสอบ ตรวจทิศของ ab/adduction และ rotation ใน viewer เทียบกับฝั่งขวา');
+    return msg;
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = PL; else root.PL = PL;
 })(typeof window !== 'undefined' ? window : this);
 
@@ -831,6 +1074,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     motions.forEach(function (mo, mi) {
       var d = document.createElement('div'); d.className = 'mot'; box.appendChild(d);
       var h = document.createElement('h3'); h.textContent = mo.name; d.appendChild(h);
+      mo.ready = false;
       if (mo.err) { var er = document.createElement('div'); er.className = 'status bad'; er.textContent = 'อ่านไฟล์ไม่ได้: ' + mo.err; d.appendChild(er); addRm(d, mi); return; }
       if (!C || !roleMap) return;
       var M = mo.M, mt = PL.matchMotion(C, roleMap, M, mo.manual), chk = PL.motionCheck(C, means || {}, M, mt.pairs);
@@ -854,6 +1098,8 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
       M.labels.forEach(function (l) { if (newNames[l] && ren[l] === undefined) collide.push(l); });
       if (collide.length) { bad = true; msgs.push(['bad', 'motion มี marker ชื่อ ' + collide.join(', ') + ' อยู่แล้ว ชนกับชื่อใหม่']); }
       if (!fit) { bad = true; msgs.push(['bad', 'ชื่อใหม่ยาวเกินช่อง label ใน C3D']); }
+      // used by step 4 (pipeline): trial is usable when matching is complete; relabelled copy gets a new name
+      mo.ready = !bad; mo.relabel = !allExact; mo.pipeName = allExact ? mo.name : mo.name.replace(/\.c3d$/i, '') + '_relabeled.c3d';
       var st = document.createElement('div'); st.className = 'status ' + (bad ? 'bad' : 'ok');
       var t = document.createElement('span');
       t.textContent = bad ? 'จับคู่ยังไม่สมบูรณ์' : (allExact ? 'ชื่อ marker ตรงกับ static แล้ว ไม่ต้อง relabel' : 'จับคู่ครบ 16 ตำแหน่ง (' + (mt.motionPreset ? PL.PRESETS[mt.motionPreset].name : 'ตามชื่อ') + ')');
@@ -892,6 +1138,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
       addRm(d, mi, bt);
       if (!allExact) { var hn = document.createElement('p'); hn.className = 'hint'; hn.textContent = 'เปลี่ยนเฉพาะชื่อ marker ' + Object.keys(ren).length + ' ตัวใน POINT:LABELS ข้อมูลตำแหน่งไม่ถูกแตะ ขนาดไฟล์เท่าเดิม วิธีนี้ยังไม่ได้ทดสอบกับ Visual3D โหลดไฟล์ที่ได้แล้วตรวจว่า Assign Model ผ่านและ target ครบ'; d.appendChild(hn); }
     });
+    renderPipe();
   }
   function addRm(d, mi, bt) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'ghost'; b.textContent = 'ลบออกจากรายการ';
@@ -905,7 +1152,65 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
   ['dragleave', 'drop'].forEach(function (n) { mdz.addEventListener(n, function (e) { e.preventDefault(); mdz.classList.remove('over'); }); });
   mdz.addEventListener('drop', function (e) { Array.prototype.forEach.call(e.dataTransfer.files, readMotion); });
 
-  window.__PL_TEST = { addMotion: addMotion, load: load, state: function () { return { C: C, roleMap: roleMap }; } };
+  // ---------- step 4-5: pipeline (.v3s) ----------
+  var vText = '', vTouched = {}, today = new Date().toISOString().slice(0, 10);
+  function vCheck(box, id, label, checked) {
+    var l = document.createElement('label'); l.className = 'check'; l.htmlFor = id; l.style.marginTop = '4px';
+    var c = document.createElement('input'); c.type = 'checkbox'; c.id = id; c.checked = checked; l.appendChild(c); l.appendChild(document.createTextNode(' ' + label));
+    $(box).appendChild(l); c.addEventListener('change', renderPipe);
+  }
+  PL.QUANTITIES.forEach(function (q) { vCheck('vQuant', 'vq_' + q.id, q.label + (q.kinetic ? ' *' : ''), q.id === 'ANGLE'); });
+  PL.JOINTS.forEach(function (j) { vCheck('vJoints', 'vj_' + j.id, j.id + ' (' + j.seg + '/' + j.ref + ')', true); });
+  function vAuto(id, value) { if (!vTouched[id]) $(id).value = value; }
+  function renderPipe() {
+    if (!$('vOut')) return;
+    var ws = $('vWs').checked;
+    ['vStatic', 'vModel', 'vFolder', 'vExtra', 'vNew', 'vSet', 'vTag'].forEach(function (id) { $(id).disabled = ws; });
+    if (C) { vAuto('vStatic', fileName); vAuto('vModel', outName()); }
+    var segs = curText ? PL.mdhSegments(curText) : null;
+    PL.JOINTS.forEach(function (j) { var el = $('vj_' + j.id), ok = !segs || (!!segs[j.seg] && !!segs[j.ref]); el.disabled = !ok; if (!ok) el.checked = false; });
+    $('vSegTag').textContent = segs ? 'segments ใน mdh: ' + Object.keys(segs).join(' · ') : '';
+    var ax = $('axes').value.split('|'), cf = PL.cardanFor(ax[0], ax[1]);
+    var cardan = $('vCardan').value === 'auto' ? cf.seq : $('vCardan').value;
+    $('vCardanHint').textContent = 'แกน segment ใน mdh: AP ' + ax[0] + ', Axial ' + ax[1] + ', ML ' + cf.ml + ' จึงใช้ ' + cf.seq.split('').join('-') + ' (flexion/extension, ab/adduction, axial rotation)';
+    var usable = motions.filter(function (m) { return !m.err && m.M; }), ready = usable.filter(function (m) { return m.ready; });
+    var names = ready.map(function (m) { return m.pipeName; }).concat($('vExtra').value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean));
+    $('vMotionLine').textContent = usable.length ? ('ไฟล์ motion จากขั้น 1b: ' + (ready.length ? ready.map(function (m) { return m.pipeName; }).join(', ') : 'ยังไม่มีไฟล์ที่จับคู่ครบ')) : 'ไฟล์ motion: เพิ่มในขั้น 1b แล้วจะถูกใส่ใน pipeline ให้เอง';
+    var massIn = num('mass'), hIn = num('height');
+    var o = { staticFile: $('vStatic').value.trim(), modelFile: $('vModel').value.trim(), motionFiles: names, folder: $('vFolder').value.trim(),
+      fileNew: $('vNew').checked, setSubject: $('vSet').checked, mass: massIn > 0 ? massIn : D.mass, height: hIn > 0 ? hIn : D.height,
+      workspaceOnly: ws, tagMotion: $('vTag').checked, lowpass: $('vLow').checked, cutoff: $('vCut').value, reflected: $('vRef').value,
+      interpolateNote: $('vInterp').checked, quantities: PL.QUANTITIES.filter(function (q) { return $('vq_' + q.id).checked; }).map(function (q) { return q.id; }),
+      joints: PL.JOINTS.filter(function (j) { return $('vj_' + j.id).checked; }).map(function (j) { return j.id; }), customJoints: $('vCustom').value,
+      resolution: $('vRes').value, normalize: $('vNorm').checked, cardan: cardan, axesSeq: cf.seq, negateLeft: $('vNeg').checked,
+      axes: { ml: cf.ml, ap: cf.ap, axial: cf.axial }, exportMat: $('vMat').checked, exportFile: $('vMatName').value.trim(), stamp: today };
+    vText = PL.generateV3s(o); $('vOut').value = vText;
+    var m = PL.lintPipeline(o, { segments: segs, staticRate: C ? C.rate : 0, motions: usable, massEntered: massIn > 0, heightEntered: hIn > 0 });
+    if (!curText && !ws) m.unshift({ level: 'bad', text: 'ยังสร้าง mdh ไม่ได้ (จับคู่ marker ในขั้น 2 ให้ครบก่อน) pipeline จะอ้างไฟล์ mdh ที่ยังไม่มี' });
+    var bad = m.filter(function (x) { return x.level === 'bad'; }).length, st = $('vStatus');
+    st.className = 'status ' + (bad ? 'bad' : 'ok'); st.innerHTML = '';
+    var b = document.createElement('span'); b.textContent = bad ? 'พบปัญหา ' + bad + ' รายการ' : 'ลำดับคำสั่งผ่านกฎที่ตรวจ (ไม่ได้แปลว่ารันผ่านใน Visual3D)'; st.appendChild(b);
+    var sm = document.createElement('small'); sm.textContent = (vText.match(/^Compute_Model_Based_Data$/gm) || []).length + ' Compute_Model_Based_Data, ' + (ws ? 0 : PL.motionList(o).length) + ' motion'; st.appendChild(sm);
+    var ul = $('vMsgs'); ul.innerHTML = '';
+    m.forEach(function (x) { var li = document.createElement('li'); li.className = x.level; li.textContent = x.text; ul.appendChild(li); });
+  }
+  ['vStatic', 'vModel'].forEach(function (id) { $(id).addEventListener('input', function () { vTouched[id] = 1; }); });
+  ['vWs', 'vStatic', 'vModel', 'vFolder', 'vExtra', 'vNew', 'vSet', 'vTag', 'vLow', 'vCut', 'vRef', 'vInterp', 'vRes', 'vNorm', 'vCustom', 'vCardan', 'vNeg', 'vMat', 'vMatName'].forEach(function (id) {
+    $(id).addEventListener('input', renderPipe); $(id).addEventListener('change', renderPipe);
+  });
+  function v3sName() { return 'pipeline_' + ($('vStatic').value.trim() || 'static').replace(/\.c3d$/i, '').replace(/^.*[\\/]/, '').replace(/[^A-Za-z0-9_.-]+/g, '_') + '.v3s'; }
+  $('vDl').addEventListener('click', function () {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([vText], { type: 'text/plain' })); a.download = v3sName(); document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    $('vCpMsg').textContent = 'ถ้าเบราว์เซอร์ไม่ดาวน์โหลด ให้ใช้ปุ่มคัดลอกแล้ววางลงไฟล์ .v3s';
+  });
+  $('vCp').addEventListener('click', function () {
+    var ta = $('vOut');
+    function fb() { ta.focus(); ta.select(); $('vCpMsg').textContent = 'เลือกข้อความแล้ว กด Ctrl+C'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(vText).then(function () { $('vCpMsg').textContent = 'คัดลอกแล้ว'; }, fb); else fb();
+  });
+
+  window.__PL_TEST = { addMotion: addMotion, load: load, state: function () { return { C: C, roleMap: roleMap }; }, pipeline: function () { return vText; } };
   load(b64ToBuf(SAMPLE_B64), 'Take_static2026-11-10_09.44.13_AM.c3d', true);
 })();
 </script>

@@ -28,6 +28,22 @@ PrimaLab **Model Builder**: เครื่องมือในเบราว�
 
 ไฟล์ที่ได้เป็น **DRAFT ยังไม่ได้รันใน Visual3D** จุดที่ต้องยืนยันติดป้าย `<<CHECK>>`
 
+## Upper body (v2, ไม่บังคับ)
+
+ขั้น 2b เพิ่ม segment จาก Plug-in Gait upper markers (+ medial elbow) ลงใน `.mdh` เดียวกัน:
+
+| Segment | ปลาย proximal | ปลาย distal | Tracking | /MASS |
+|---|---|---|---|---|
+| `RTA` trunk | กึ่งกลาง C7–CLAV | RIGHT_HIP / LEFT_HIP | C7, T10, CLAV, STRN | – |
+| `R/L AR` upper arm | SJC (acromion เลื่อนลงตามแกน axial ของ RTA = Shoulder_Offset) | ELB / ELBM | SJC, ELB, UPA | 0.028·Mass |
+| `R/L FA` forearm | EJC (กึ่งกลาง ELB–ELBM) | WRA / WRB | FRM, WRA, WRB | 0.016·Mass |
+| `R/L HA` hand | WJC (กึ่งกลาง WRA–WRB) | FIN | WRA, WRB, FIN | 0.006·Mass |
+
+- เลือกเฉพาะ segment ที่ marker ครบ (เช่น ไม่มี RFIN → ไม่มี RHA) และ upper arm ต้องมี trunk
+- Shoulder offset เริ่มต้น = 0.17 × ระยะ acromion–acromion (constant offset, Rab et al. 2002; ติด `<<CHECK>>`) ใส่ค่าที่วัดเองได้
+- Pipeline: joint Trunk, Shoulder, Elbow, Wrist; shoulder เลือก ISB Euler Y-X-Y (Wu et al. 2005) ได้
+- เมื่อปิด upper body ไฟล์ `.mdh` เหมือนเดิมทุก byte
+
 ## Tests
 
 ```bash

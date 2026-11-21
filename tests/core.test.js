@@ -30,7 +30,7 @@ function baseOpts(extra) {
   return Object.assign({
     staticFile: 'static.c3d', modelFile: 'model.mdh', motionFiles: ['trial01.c3d', 'trial02_relabeled.c3d'], folder: '',
     fileNew: true, setSubject: true, mass: 70, height: 1.7, tagMotion: true, lowpass: false, cutoff: 6, reflected: 6,
-    interpolateNote: true, quantities: ['ANGLE'], joints: PL.JOINTS.map((j) => j.id), customJoints: '', resolution: 'parent',
+    interpolateNote: true, quantities: ['ANGLE'], joints: PL.JOINTS.filter((j) => !j.upper).map((j) => j.id), customJoints: '', resolution: 'parent',
     cardan: 'ZXY', axesSeq: 'ZXY', axes: { ml: 'Z', ap: 'X', axial: 'Y' }, exportMat: false, stamp: '2026-11-21'
   }, extra || {});
 }
@@ -129,6 +129,57 @@ test('lint: kinetics on a trial without force plates is an error; Cardan mismatc
   assert.ok(m.some((x) => x.level === 'bad' && /force platform/.test(x.text)));
   assert.ok(m.some((x) => /RFT, LFT|RFT|LFT/.test(x.text) && /MASS/.test(x.text)));
   assert.ok(PL.lintPipeline(baseOpts({ cardan: 'XYZ' }), { segments: segs }).some((x) => /ไม่ตรงกับแกน segment/.test(x.text)));
+});
+
+// ---- upper body (synthetic Plug-in Gait labels; no participant data in the repo) ----
+const PIG_UPPER = ['C7', 'T10', 'CLAV', 'STRN'].concat(...['R', 'L'].map((s) => ['SHO', 'UPA', 'ELB', 'ELBM', 'FRM', 'WRA', 'WRB', 'FIN'].map((k) => s + k)));
+const lowerRM = PL.presetToRoleMap('legacy16');
+const lowerLabels = [].concat(...['R', 'L'].map((s) => Object.values(lowerRM[s])));
+function upperU(labels, extra) {
+  const um = PL.upperRoleMap(labels), segs = PL.upperPossible(um);
+  return Object.assign({ map: um, segs, shoulderOffset: { R: 0.058, L: 0.058 }, elbowW: { R: 0.07, L: 0.07 }, wristW: { R: 0.05, L: 0.05 }, trunkRadius: 0.17 }, extra || {});
+}
+
+test('upper: off gives the same mdh as before (no upper key)', () => {
+  const a = PL.generate({ roleMap: lowerRM, prefix: '' }).text, b = PL.generate({ roleMap: lowerRM, prefix: '', upper: null }).text;
+  assert.strictEqual(a, b);
+});
+
+test('upper: full Plug-in Gait upper gives 7 extra segments and validates', () => {
+  const labels = lowerLabels.concat(PIG_UPPER), U = upperU(labels);
+  const g = PL.generate({ roleMap: lowerRM, prefix: '', upper: U }), v = PL.validate(g.text, labels);
+  assert.deepStrictEqual(v.errors, []);
+  assert.deepStrictEqual(Object.keys(PL.mdhSegments(g.text)).sort(), ['LAR', 'LFA', 'LFT', 'LHA', 'LSK', 'LTH', 'RAR', 'RFA', 'RFT', 'RHA', 'RPV', 'RSK', 'RTA', 'RTH']);
+  assert.ok(/\/LANDMARK_NAME=RSJC[\s\S]*?\/SEGMENT_NAME=RTA[\s\S]*?\/MCS_AXIAL=-Shoulder_Offset_R\*RTA_Axial_Direction/.test(g.text));
+  assert.ok(g.text.includes('/NAME=RAR') && g.text.includes('/MASS=0.028*Mass'));
+});
+
+test('upper: missing RFIN drops only the right hand; prefix is applied to upper targets', () => {
+  const labels = lowerLabels.concat(PIG_UPPER.filter((l) => l !== 'RFIN')), U = upperU(labels);
+  assert.strictEqual(U.segs.R.hand, false); assert.strictEqual(U.segs.L.hand, true);
+  const g = PL.generate({ roleMap: lowerRM, prefix: 'S01:', upper: U });
+  assert.deepStrictEqual(PL.validate(g.text, labels.map((l) => 'S01:' + l)).errors, []);
+  assert.ok(!/\/NAME=RHA/.test(g.text) && /\/NAME=LHA/.test(g.text));
+});
+
+test('upper: no trunk markers means no arms (SJC needs the trunk axis)', () => {
+  const p = PL.upperPossible(PL.upperRoleMap(lowerLabels.concat(PIG_UPPER.filter((l) => l !== 'T10'))));
+  assert.strictEqual(p.trunk, false); assert.strictEqual(p.R.arm, false); assert.strictEqual(p.R.forearm, true);
+});
+
+test('upper: medial elbow label variants are recognised', () => {
+  assert.strictEqual(PL.upperRoleMap(['RMELB', 'LELM']).R.ELBM, 'RMELB');
+  assert.strictEqual(PL.upperRoleMap(['RMELB', 'LELM']).L.ELBM, 'LELM');
+});
+
+test('pipeline: upper joints need upper segments; ISB shoulder uses Y-X-Y', () => {
+  const ups = ['Trunk', 'RShoulder', 'RElbow', 'RWrist'];
+  assert.ok(PL.lintPipeline(baseOpts({ joints: ups }), { segments: segs }).some((x) => x.level === 'bad' && /RTA/.test(x.text)));
+  const t = PL.generateV3s(baseOpts({ joints: ['RShoulder', 'RElbow'], shoulderSeq: 'ISB' }));
+  const sh = block(t, 'Compute_Model_Based_Data', 0), el = block(t, 'Compute_Model_Based_Data', 1);
+  assert.ok(sh.includes('/SEGMENT=RAR') && sh.includes('/REFERENCE_SEGMENT=RTA') && sh.includes('/AXIS1=Y') && sh.includes('/AXIS2=X') && sh.includes('/AXIS3=Y'));
+  assert.ok(el.includes('/AXIS1=Z') && el.includes('/AXIS3=Y'));
+  assert.ok(PL.lintPipeline(baseOpts({ joints: ['RShoulder'] }), {}).some((x) => /gimbal lock/.test(x.text)));
 });
 
 test('parseC3D reports force plates and analog rate (sample)', () => {

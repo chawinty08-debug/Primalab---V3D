@@ -152,6 +152,22 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
         </details>
       </section>
 
+      <section class="card" aria-labelledby="h2u">
+        <h2 id="h2u"><span class="tag">2b</span> Upper body (ไม่บังคับ)</h2>
+        <label class="check" for="uOn" style="margin-top:0"><input type="checkbox" id="uOn"> เพิ่ม trunk / upper arm / forearm / hand ใน mdh (Plug-in Gait upper markers)</label>
+        <p class="hint" id="uStatus"></p>
+        <div class="row three" id="uSegs" style="margin-top:6px"></div>
+        <div class="row" style="margin-top:10px">
+          <label class="f" for="uShR">Shoulder offset ขวา (m)<input type="number" id="uShR" step="0.001" min="0"></label>
+          <label class="f" for="uShL">Shoulder offset ซ้าย (m)<input type="number" id="uShL" step="0.001" min="0"></label>
+        </div>
+        <p class="hint">SJC = acromion marker เลื่อนลงตามแกน axial ของ trunk เท่ากับ shoulder offset ค่าว่าง = constant offset จากระยะ acromion–acromion (Rab et al. 2002, ติด &lt;&lt;CHECK&gt;&gt;) · elbow/wrist width คำนวณจาก marker lateral–medial ใน static · trunk ใช้ hip joint centre เป็นปลาย distal และ track ด้วย C7/T10/CLAV/STRN</p>
+        <details id="uMapDetails">
+          <summary>จับคู่ marker upper body รายตำแหน่ง</summary>
+          <table class="maptbl" id="umaptbl"></table>
+        </details>
+      </section>
+
       <section class="card" aria-labelledby="h3">
         <h2 id="h3"><span class="tag">3</span> ข้อมูลผู้ถูกวัด</h2>
         <div class="row three">
@@ -212,6 +228,8 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
           <label class="f" for="vMatName">ชื่อไฟล์ .mat<input type="text" id="vMatName" value="joint_data.mat" spellcheck="false" autocomplete="off"></label>
         </div>
         <p class="hint" id="vCardanHint"></p>
+        <label class="f" for="vShSeq" style="margin-top:8px">Shoulder (humerothoracic) angle
+          <select id="vShSeq"><option value="cardan">ลำดับเดียวกับ joint อื่น (Cardan)</option><option value="ISB">ISB Euler Y-X-Y (Wu et al. 2005, ยังไม่ทดสอบ)</option></select></label>
         <label class="check" for="vNeg"><input type="checkbox" id="vNeg"> NEGATE แกน AP/Axial ของ joint ฝั่งซ้าย (ยังไม่ทดสอบ)</label>
         <label class="check" for="vMat"><input type="checkbox" id="vMat"> ส่งออกผลเป็น .mat (Export_Data_To_Matfile)</label>
         <p class="hint">บทเรียน: <a href="https://docs.primamotion.tech/#th-visual3d-m04" target="_blank" rel="noopener">โมดูล 4 ผูกโมเดลกับ movement trial ↗</a> · <a href="https://docs.primamotion.tech/#th-visual3d-m05" target="_blank" rel="noopener">โมดูล 5 Interpolate และ filter ↗</a> · <a href="https://docs.primamotion.tech/#th-visual3d-m06" target="_blank" rel="noopener">โมดูล 6 joint angle และ export ↗</a></p>
@@ -237,7 +255,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
           <span id="cpMsg" class="hint" style="align-self:center;margin:0" aria-live="polite"></span>
         </div>
         <textarea class="out" id="out" readonly spellcheck="false" aria-label="ตัวอย่างไฟล์ mdh"></textarea>
-        <p class="hint">ไฟล์เป็น DRAFT ยังไม่ได้ build ใน Visual3D ส่ง build log กลับมาเพื่อตรวจ Joints Found (ต้องครบ 6) และเทียบพิกัดกับตารางด้านล่าง</p>
+        <p class="hint">ไฟล์เป็น DRAFT ยังไม่ได้ build ใน Visual3D ส่ง build log กลับมาเพื่อตรวจ Joints Found (lower body ครบ 6 และเพิ่มตาม upper body ที่เลือก) และเทียบพิกัดกับตารางด้านล่าง</p>
       </section>
 
       <section class="card" aria-labelledby="h6">
@@ -402,6 +420,43 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     return found;
   };
 
+  // ---------- upper body marker roles (Plug-in Gait upper body + medial elbow) ----------
+  PL.UPPER_MID = [['C7', 'C7 spinous process'], ['T10', 'T10 spinous process'], ['CLAV', 'Clavicle (jugular notch)'], ['STRN', 'Sternum (xiphoid)']];
+  PL.UPPER_SIDE = [['SHO', 'Acromion'], ['UPA', 'Upper arm marker'], ['ELB', 'Lateral epicondyle (elbow)'], ['ELBM', 'Medial epicondyle (elbow)'],
+    ['FRM', 'Forearm marker'], ['WRA', 'Wrist A: radial styloid (thumb side)'], ['WRB', 'Wrist B: ulnar styloid'], ['FIN', 'Finger: 2nd metacarpal head']];
+  // candidate labels per role (first one present in the C3D wins)
+  PL.UPPER_CANDIDATES = { C7: ['C7'], T10: ['T10'], CLAV: ['CLAV'], STRN: ['STRN'], SHO: ['SHO'], UPA: ['UPA'], ELB: ['ELB'], ELBM: ['ELBM', 'MELB', 'ELM', 'MEL', 'EM'],
+    FRM: ['FRM'], WRA: ['WRA'], WRB: ['WRB'], FIN: ['FIN'] };
+  PL.upperRoleMap = function (bare) {
+    var set = {}; bare.forEach(function (l) { set[l] = 1; });
+    var pick = function (cands, pre) { for (var i = 0; i < cands.length; i++) if (set[pre + cands[i]]) return pre + cands[i]; return ''; };
+    var out = { mid: {}, R: {}, L: {} };
+    PL.UPPER_MID.forEach(function (r) { out.mid[r[0]] = pick(PL.UPPER_CANDIDATES[r[0]], ''); });
+    ['R', 'L'].forEach(function (s) { PL.UPPER_SIDE.forEach(function (r) { out[s][r[0]] = pick(PL.UPPER_CANDIDATES[r[0]], s); }); });
+    return out;
+  };
+  // which upper segments the mapped markers allow; arm needs the trunk (SJC is offset along the trunk axis)
+  PL.upperPossible = function (um) {
+    var h = function (o, ks) { return ks.every(function (k) { return !!o[k]; }); };
+    var trunk = h(um.mid, ['C7', 'T10', 'CLAV', 'STRN']), out = { trunk: trunk };
+    ['R', 'L'].forEach(function (s) {
+      var m = um[s];
+      out[s] = { arm: trunk && h(m, ['SHO', 'UPA', 'ELB', 'ELBM']), forearm: h(m, ['ELB', 'ELBM', 'FRM', 'WRA', 'WRB']), hand: h(m, ['WRA', 'WRB', 'FIN']) };
+    });
+    return out;
+  };
+  PL.upperLabels = function (U) {
+    var S = U.segs, M = U.map, out = [];
+    var add = function (o, ks) { ks.forEach(function (k) { if (o[k] && out.indexOf(o[k]) < 0) out.push(o[k]); }); };
+    if (S.trunk) add(M.mid, ['C7', 'T10', 'CLAV', 'STRN']);
+    ['R', 'L'].forEach(function (s) {
+      if (S[s].arm) add(M[s], ['SHO', 'UPA', 'ELB', 'ELBM']);
+      if (S[s].forearm) add(M[s], ['ELB', 'ELBM', 'FRM', 'WRA', 'WRB']);
+      if (S[s].hand) add(M[s], ['WRA', 'WRB', 'FIN']);
+    });
+    return out;
+  };
+
   // ---------- generator ----------
   function num(v) { return String(+v); }
   PL.defaults = { mass: 70, height: 1.7, markerDiameterMm: 14, kneeW: 0.100, ankleW: 0.070, pelvisDepth: 0.0965489 };
@@ -477,6 +532,22 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
       metric(s + 'FT_Proximal_Radius', '0.5*Ankle_Width_' + s + '+Marker_Radius');
       metric(s + 'FT_Distal_Radius', '0.02', '<<CHECK>> foot distal end is a single point (toe marker)');
     });
+    // ---- upper body (optional): Plug-in Gait upper markers, RTA / R-L AR, FA, HA ----
+    var U = o.upper && o.upper.segs ? o.upper : null, US = U ? U.segs : null, UM = U ? U.map : null;
+    var TU = function (n) { return PFX + n; };
+    if (U) {
+      w('!'); w('! Upper body metrics (PrimaLab Model Builder, DRAFT)'); w('!');
+      if (US.trunk) metric('RTA_Proximal_Radius', num(U.trunkRadius), '<<CHECK>> half the acromion-acromion distance from static (m)');
+      ['R', 'L'].forEach(function (s) {
+        var g = US[s]; if (!g.arm && !g.forearm && !g.hand) return;
+        if (g.arm) metric('Shoulder_Offset_' + s, num(U.shoulderOffset[s]), U.shoulderEntered && U.shoulderEntered[s] ? null : '<<CHECK>> SJC below acromion marker; default = constant offset from inter-acromial distance (Rab et al. 2002) - verify ratio / measure');
+        if (g.arm || g.forearm) metric('Elbow_Width_' + s, num(U.elbowW[s]), 'from static: lateral-medial epicondyle markers minus marker diameter (m)');
+        if (g.forearm || g.hand) metric('Wrist_Width_' + s, num(U.wristW[s]), 'from static: wrist markers A-B minus marker diameter (m)');
+        if (g.arm) metric(s + 'AR_Proximal_Radius', '0.5*Elbow_Width_' + s + '+Marker_Radius', '<<CHECK>> upper arm proximal radius approximated by elbow half-width');
+        if (g.forearm) metric(s + 'FA_Proximal_Radius', '0.5*Elbow_Width_' + s + '+Marker_Radius');
+        if (g.hand) { metric(s + 'HA_Proximal_Radius', '0.5*Wrist_Width_' + s + '+Marker_Radius'); metric(s + 'HA_Distal_Radius', '0.02', '<<CHECK>> hand distal end is a single point (finger marker)'); }
+      });
+    }
     w('!'); w('! Segment Info'); w('!'); w('');
     var R = rm.R, L = rm.L;
     segment('RPV', 'R.ASIS+L.ASIS+R.PSIS+L.PSIS+Segment Depth', T(R.ASIS) + '+' + T(L.ASIS) + '+SCRM+SCRM+RPV_Segment_Depth',
@@ -499,6 +570,22 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
         'LANDMARK+TARGET+TARGET+++METRIC+METRIC', 'TARGET+TARGET+TARGET',
         T(m.HEEL) + '+' + T(m.TOE) + '+' + T(m.ANKLE), a[1]);
     });
+    if (U) {
+      var mid = UM.mid;
+      // trunk: proximal = midpoint C7/CLAV, distal ends = hip joint centres (same pattern as thigh), tracked by thoracic markers
+      if (US.trunk) segment('RTA', REF, 'RTA_PROX+RIGHT_HIP+LEFT_HIP+++RTA_Distal_Radius+RTA_Proximal_Radius',
+        'LANDMARK+LANDMARK+LANDMARK+++METRIC+METRIC', 'TARGET+TARGET+TARGET+TARGET',
+        TU(mid.C7) + '+' + TU(mid.T10) + '+' + TU(mid.CLAV) + '+' + TU(mid.STRN), '');
+      ['R', 'L'].forEach(function (s) {
+        var g = US[s], m = UM[s];
+        if (g.arm) segment(s + 'AR', REF, s + 'SJC+' + TU(m.ELB) + '+' + TU(m.ELBM) + '+++' + s + 'AR_Distal_Radius+' + s + 'AR_Proximal_Radius',
+          'LANDMARK+TARGET+TARGET+++METRIC+METRIC', 'LANDMARK+TARGET+TARGET', s + 'SJC+' + TU(m.ELB) + '+' + TU(m.UPA), '', null, null, '0.028*Mass');
+        if (g.forearm) segment(s + 'FA', REF, s + 'EJC+' + TU(m.WRA) + '+' + TU(m.WRB) + '+++' + s + 'FA_Distal_Radius+' + s + 'FA_Proximal_Radius',
+          'LANDMARK+TARGET+TARGET+++METRIC+METRIC', 'TARGET+TARGET+TARGET', TU(m.FRM) + '+' + TU(m.WRA) + '+' + TU(m.WRB), '', null, null, '0.016*Mass');
+        if (g.hand) segment(s + 'HA', FREF, s + 'WJC+' + TU(m.FIN) + '+' + TU(m.WRA) + '+++' + s + 'HA_Distal_Radius+' + s + 'HA_Proximal_Radius',
+          'LANDMARK+TARGET+TARGET+++METRIC+METRIC', 'TARGET+TARGET+TARGET', TU(m.WRA) + '+' + TU(m.WRB) + '+' + TU(m.FIN), '', null, null, '0.006*Mass');
+      });
+    }
     w('!'); w('! Digitizing Wand Configuration'); w('!'); w('HYBRID_DIGITIZING_WAND'); w('! /CALIBRATION_FILE=');
     w('/WAND_ORIENTATION_MARKER1='); w('/WAND_ORIENTATION_MARKER2='); w('! /WAND_ORIENTATION_MARKER3=');
     w('! /OFFSET_X=0'); w('! /OFFSET_Y=0'); w('/OFFSET_Z=-0.127'); w('! /OFFSET_X2=0'); w('! /OFFSET_Y2=0'); w('! /OFFSET_Z2=0');
@@ -518,6 +605,17 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
       landmark(s + 'KJC', { ut: true, tty: 'TARGET+LANDMARK', tnm: T(m.KNEE) + '+' + s + 'KNM', ml: -999999, ap: -999999, ax: 0.5, pct: true, cal: true });
       landmark(s + 'AJC', { ut: true, tty: 'TARGET+LANDMARK', tnm: T(m.ANKLE) + '+' + s + 'ANM', ml: -999999, ap: -999999, ax: 0.5, pct: true, cal: true });
     });
+    if (U) {
+      w('!'); w('! Upper body landmarks');
+      if (US.trunk) landmark('RTA_PROX', { ut: true, tty: 'TARGET+TARGET', tnm: TU(UM.mid.C7) + '+' + TU(UM.mid.CLAV), ax: 0.5, pct: true, cal: true });
+      ['R', 'L'].forEach(function (s) {
+        var g = US[s], m = UM[s];
+        if (g.arm) landmark(s + 'SJC', { seg: 'RTA', tty: 'TARGET', tnm: TU(m.SHO), ax: '-Shoulder_Offset_' + s + '*RTA_Axial_Direction', cal: true });
+        if (g.forearm) landmark(s + 'EJC', { ut: true, tty: 'TARGET+TARGET', tnm: TU(m.ELB) + '+' + TU(m.ELBM), ml: -999999, ap: -999999, ax: 0.5, pct: true, cal: true });
+        if (g.hand) landmark(s + 'WJC', { ut: true, tty: 'TARGET+TARGET', tnm: TU(m.WRA) + '+' + TU(m.WRB), ml: -999999, ap: -999999, ax: 0.5, pct: true, cal: true });
+      });
+      PL.upperLabels(U).forEach(function (n) { LAB[TU(n)] = 1; });
+    }
     w('!'); w('! Muscles'); w('!');
     var text = out.join('\r\n') + '\r\n';
     return { text: text, placeholders: placeholders, entered: entered, labels: Object.keys(LAB) };
@@ -625,6 +723,45 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
   };
 
 
+  // ---------- upper body expected values ----------
+  // Default SJC offset: constant-offset method, fraction of the inter-acromial distance below the acromion marker
+  // (Rab, Petuskey & Bagley 2002, Gait Posture 15:113-119). <<CHECK>> ratio against the paper before publishing results.
+  PL.SHOULDER_OFFSET_RATIO = 0.17;
+  // means: bare label -> [x,y,z] m; um: upperRoleMap; segs: which segments; hips: {R,L} from PL.expected rows; o: {markerDiameterMm, shoulderR, shoulderL}
+  PL.expectedUpper = function (means, um, segs, hips, mlDir, o) {
+    var D = PL.defaults, has = function (v) { return v !== null && v !== undefined && v !== '' && isFinite(+v) && +v > 0; };
+    var mr = (has(o.markerDiameterMm) ? +o.markerDiameterMm : D.markerDiameterMm) / 2000, M = function (n) { return n ? means[n] : null; };
+    var res = { rows: [], tracking: [], notes: [], params: { shoulderOffset: {}, elbowW: {}, wristW: {}, trunkRadius: null } };
+    var tri = function (seg, t) {
+      if (t.some(function (p) { return !p; })) return;
+      var ab = sub(t[1], t[0]), ac = sub(t[2], t[0]);
+      res.tracking.push({ seg: seg, angle: Math.acos(Math.min(1, Math.abs(dot(ab, ac)) / norm(ab) / norm(ac))) * 180 / Math.PI, area: norm(cross(ab, ac)) / 2 * 1e4, a: norm(ab) * 100, b: norm(ac) * 100, c: norm(sub(t[2], t[1])) * 100 });
+    };
+    var axial = null, top = null;
+    if (segs.trunk && hips) {
+      top = mid(M(um.mid.C7), M(um.mid.CLAV)); var hm = mid(hips.R, hips.L);
+      axial = unit(sub(top, hm));
+      res.rows.push({ name: 'RTA_PROX (C7–CLAV mid)', v: top }); res.rows.push({ name: 'RTA length (hips–RTA_PROX)', v: norm(sub(top, hm)) });
+      tri('RTA', [M(um.mid.C7), M(um.mid.CLAV), M(um.mid.STRN)]);
+    }
+    var acro = M(um.R.SHO) && M(um.L.SHO) ? norm(sub(M(um.R.SHO), M(um.L.SHO))) : null;
+    if (acro) { res.params.trunkRadius = +(acro / 2).toFixed(4); res.rows.push({ name: 'Acromion–acromion distance', v: acro }); }
+    ['R', 'L'].forEach(function (s) {
+      var g = segs[s], m = um[s];
+      if (g.arm || g.forearm) res.params.elbowW[s] = +(norm(sub(M(m.ELB), M(m.ELBM))) - 2 * mr).toFixed(4);
+      if (g.forearm || g.hand) res.params.wristW[s] = +(norm(sub(M(m.WRA), M(m.WRB))) - 2 * mr).toFixed(4);
+      var so = has(o['shoulder' + s]) ? +o['shoulder' + s] : (acro ? +(PL.SHOULDER_OFFSET_RATIO * acro).toFixed(4) : 0.05);
+      res.params.shoulderOffset[s] = so;
+      var SJC = g.arm && axial ? sub(M(m.SHO), mul(axial, so)) : null, EJC = (g.arm || g.forearm) ? mid(M(m.ELB), M(m.ELBM)) : null, WJC = (g.forearm || g.hand) ? mid(M(m.WRA), M(m.WRB)) : null;
+      if (SJC) { res.rows.push({ name: s + 'SJC', v: SJC }); res.rows.push({ name: s + 'AR length (SJC–EJC)', v: norm(sub(SJC, EJC)) }); tri(s + 'AR', [SJC, M(m.ELB), M(m.UPA)]); }
+      if (g.forearm) { res.rows.push({ name: s + 'EJC', v: EJC }); res.rows.push({ name: s + 'FA length (EJC–WJC)', v: norm(sub(EJC, WJC)) }); tri(s + 'FA', [M(m.FRM), M(m.WRA), M(m.WRB)]); }
+      if (g.hand) { res.rows.push({ name: s + 'WJC', v: WJC }); res.rows.push({ name: s + 'HA length (WJC–FIN)', v: norm(sub(WJC, M(m.FIN))) }); tri(s + 'HA', [M(m.WRA), M(m.WRB), M(m.FIN)]); }
+      if (res.params.elbowW[s] !== undefined && !(res.params.elbowW[s] > 0.03 && res.params.elbowW[s] < 0.15)) res.notes.push('Elbow width ' + s + ' = ' + res.params.elbowW[s] + ' m ผิดปกติ ตรวจ marker ELB/ELBM');
+    });
+    if (mlDir) ['SHO', 'ELB', 'WRA'].forEach(function (r) { if (M(um.R[r]) && M(um.L[r]) && dot(sub(M(um.R[r]), M(um.L[r])), mlDir) <= 0) res.notes.push('ด้าน R/L ของแขนอาจสลับ: ' + um.R[r] + ' อยู่ฝั่งซ้ายของ ' + um.L[r]); });
+    return res;
+  };
+
   // ---------- static <-> motion label matching ----------
   // S = parsed static, M = parsed motion, roleMap = static role map (bare labels).
   // Returns pairs for the 16 static targets: sBare (static label, no prefix), mBare (motion label, no prefix) and how it was found.
@@ -719,7 +856,13 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
   PL.JOINTS = [
     { id: 'RHip', seg: 'RTH', ref: 'RPV', side: 'R', label: 'Right hip' }, { id: 'RKnee', seg: 'RSK', ref: 'RTH', side: 'R', label: 'Right knee' },
     { id: 'RAnkle', seg: 'RFT', ref: 'RSK', side: 'R', label: 'Right ankle' }, { id: 'LHip', seg: 'LTH', ref: 'RPV', side: 'L', label: 'Left hip' },
-    { id: 'LKnee', seg: 'LSK', ref: 'LTH', side: 'L', label: 'Left knee' }, { id: 'LAnkle', seg: 'LFT', ref: 'LSK', side: 'L', label: 'Left ankle' }
+    { id: 'LKnee', seg: 'LSK', ref: 'LTH', side: 'L', label: 'Left knee' }, { id: 'LAnkle', seg: 'LFT', ref: 'LSK', side: 'L', label: 'Left ankle' },
+    // upper body (only when the mdh has these segments)
+    { id: 'Trunk', seg: 'RTA', ref: 'RPV', side: '', label: 'Trunk relative to pelvis', upper: true },
+    { id: 'RShoulder', seg: 'RAR', ref: 'RTA', side: 'R', label: 'Right shoulder (humerothoracic)', upper: true, shoulder: true },
+    { id: 'RElbow', seg: 'RFA', ref: 'RAR', side: 'R', label: 'Right elbow', upper: true }, { id: 'RWrist', seg: 'RHA', ref: 'RFA', side: 'R', label: 'Right wrist', upper: true },
+    { id: 'LShoulder', seg: 'LAR', ref: 'RTA', side: 'L', label: 'Left shoulder (humerothoracic)', upper: true, shoulder: true },
+    { id: 'LElbow', seg: 'LFA', ref: 'LAR', side: 'L', label: 'Left elbow', upper: true }, { id: 'LWrist', seg: 'LHA', ref: 'LFA', side: 'L', label: 'Left wrist', upper: true }
   ];
   PL.QUANTITIES = [
     { id: 'ANGLE', fn: 'JOINT_ANGLE', suffix: 'Angle', label: 'Joint angle (Cardan)', kinetic: false },
@@ -760,7 +903,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
   };
   function jointList(o) {
     return (o.joints || []).map(function (id) { return PL.JOINTS.filter(function (x) { return x.id === id; })[0]; }).filter(Boolean)
-      .map(function (j) { return { id: j.id, name: j.id, seg: j.seg, ref: j.ref, side: j.side }; })
+      .map(function (j) { return { id: j.id, name: j.id, seg: j.seg, ref: j.ref, side: j.side, shoulder: !!j.shoulder }; })
       .concat(PL.parseCustomJoints(o.customJoints).joints);
   }
   function joinPath(folder, f) { folder = String(folder || '').trim(); return folder ? folder.replace(/[\\/]+$/, '') + '\\' + f : f; }
@@ -824,7 +967,10 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
         var neg = { X: false, Y: false, Z: false };
         if (o.negateLeft && j.side === 'L' && (q.id === 'ANGLE' || q.id === 'VELOCITY')) { neg[axes.ap] = true; neg[axes.axial] = true; }
         ['X', 'Y', 'Z'].forEach(function (a) { kv.push(neg[a] ? '/NEGATE' + a + '=TRUE' : '! /NEGATE' + a + '=FALSE'); });
-        if (q.id === 'ANGLE') kv.push('/AXIS1=' + seq[0], '/AXIS2=' + seq[1], '/AXIS3=' + seq[2]); else kv.push('! /AXIS1=X', '! /AXIS2=Y', '! /AXIS3=Z');
+        // shoulder: optional ISB humerothoracic Euler Y-X'-Y'' (Wu et al. 2005) = Axial, AP, Axial of the segment axes
+        var isb = q.id === 'ANGLE' && j.shoulder && o.shoulderSeq === 'ISB', js = isb ? [axes.axial, axes.ap, axes.axial] : seq;
+        if (isb) notes.push('<<CHECK>> ' + j.name + ': Euler ' + js.join('-') + ' (ISB humerothoracic: plane of elevation, elevation, axial rotation; Wu et al. 2005). Confirm Visual3D accepts a repeated axis and check angles in the viewer.');
+        if (q.id === 'ANGLE') kv.push('/AXIS1=' + js[0], '/AXIS2=' + js[1], '/AXIS3=' + js[2]); else kv.push('! /AXIS1=X', '! /AXIS2=Y', '! /AXIS3=Z');
         if (first) {
           if (q.id === 'ANGLE') notes.push('Cardan ' + seq.join('-') + ' for segment axes ML=' + axes.ml + ', AP=' + axes.ap + ', Axial=' + axes.axial + ' (flexion/extension, ab/adduction, axial rotation). <<CHECK>> sign/order against the viewer');
           else notes.push('<<CHECK>> ' + q.fn + ' uses the same Compute_Model_Based_Data parameter list; verify the first result in Visual3D (or save it once from Model > Compute Model Based Data and compare).');
@@ -887,6 +1033,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     if (kin && jl.length) add('warn', 'kinetics ยังไม่ได้ทดสอบ: ตรวจ force assignment (ลูกศรสีน้ำเงิน) และเทียบ moment กับค่าที่คาดก่อนใช้งาน');
     if (o.setSubject && (!ctx.massEntered || !ctx.heightEntered)) add('warn', 'Set_Subject_' + [!ctx.massEntered ? 'Weight = ' + num(o.mass) + ' kg' : '', !ctx.heightEntered ? 'Height = ' + num(o.height) + ' m' : ''].filter(Boolean).join(', ') + ' เป็นค่า placeholder ใส่ค่าจริงในขั้น 3');
     if (o.cardan && o.axesSeq && o.cardan !== o.axesSeq) add('warn', 'ลำดับ Cardan ' + o.cardan + ' ไม่ตรงกับแกน segment ใน mdh (ML-AP-Axial = ' + o.axesSeq + ') มุมแต่ละแกนจะไม่ใช่ flexion/ab-adduction/rotation ตามลำดับ');
+    if (qs.indexOf('ANGLE') >= 0 && o.shoulderSeq !== 'ISB' && jl.some(function (j) { return j.shoulder; })) add('warn', 'Shoulder ใช้ Cardan ' + (o.cardan || 'ZXY') + ' ซึ่งเกิด gimbal lock ได้เมื่อแขนกาง/ยกใกล้ 90° (เช่น forehand) ISB แนะนำ Euler Y-X-Y สำหรับ humerothoracic (Wu et al. 2005) เลือกได้ในตัวเลือก Shoulder');
     if (o.negateLeft) add('warn', 'NEGATE ฝั่งซ้ายยังไม่ได้ทดสอบ ตรวจทิศของ ab/adduction และ rotation ใน viewer เทียบกับฝั่งขวา');
     return msg;
   };
@@ -961,8 +1108,71 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     C.warnings.forEach(function (w) { chip(w, 'warn'); });
     var unl = C.bare.filter(function (l) { return /^Unlabeled/i.test(l); }).length;
     if (unl) chip(unl + ' จุด unlabeled (ไม่ใช้)');
+    // upper body: auto-map Plug-in Gait upper labels; switch on when at least the trunk can be built
+    upperMap = PL.upperRoleMap(C.bare); buildUpperTable();
+    var up = PL.upperPossible(upperMap);
+    $('uOn').checked = up.trunk; uSegInit(up);
+    if (up.trunk) chip('พบ marker upper body (Plug-in Gait)', 'ok');
     render();
   }
+
+  // ---------- upper body UI ----------
+  var upperMap = { mid: {}, R: {}, L: {} };
+  var U_SEGS = [['trunk', '', 'Trunk (RTA)'], ['arm', 'R', 'R upper arm (RAR)'], ['forearm', 'R', 'R forearm (RFA)'], ['hand', 'R', 'R hand (RHA)'],
+    ['arm', 'L', 'L upper arm (LAR)'], ['forearm', 'L', 'L forearm (LFA)'], ['hand', 'L', 'L hand (LHA)']];
+  U_SEGS.forEach(function (u) {
+    var id = 'us_' + (u[1] || 'T') + '_' + u[0], l = document.createElement('label'); l.className = 'check'; l.htmlFor = id; l.style.marginTop = '2px';
+    var c = document.createElement('input'); c.type = 'checkbox'; c.id = id; c.checked = true; l.appendChild(c); l.appendChild(document.createTextNode(' ' + u[2]));
+    $('uSegs').appendChild(l); c.addEventListener('change', render);
+  });
+  function uSegInit(up) { U_SEGS.forEach(function (u) { var e = $('us_' + (u[1] || 'T') + '_' + u[0]); e.checked = u[1] ? up[u[1]][u[0]] : up.trunk; }); }
+  function buildUpperTable() {
+    var t = $('umaptbl'); t.innerHTML = '<tr><th>ตำแหน่ง</th><th>ขวา / กลาง</th><th>ซ้าย</th></tr>';
+    var opts = function (se, val) {
+      var none = document.createElement('option'); none.value = ''; none.textContent = '(ไม่มี)'; se.appendChild(none);
+      C.bare.slice().sort().forEach(function (l) { var o = document.createElement('option'); o.value = l; o.textContent = l; se.appendChild(o); });
+      se.value = val && C.idx[val] !== undefined ? val : '';
+      se.addEventListener('change', function () { readUpperTable(); render(); });
+    };
+    PL.UPPER_MID.forEach(function (r) {
+      var tr = document.createElement('tr'), td = document.createElement('td'); td.textContent = r[1]; tr.appendChild(td);
+      var c = document.createElement('td'), se = document.createElement('select'); se.id = 'umap_M_' + r[0]; se.setAttribute('aria-label', r[1]); opts(se, upperMap.mid[r[0]]);
+      c.appendChild(se); tr.appendChild(c); tr.appendChild(document.createElement('td')); t.appendChild(tr);
+    });
+    PL.UPPER_SIDE.forEach(function (r) {
+      var tr = document.createElement('tr'), td = document.createElement('td'); td.textContent = r[1]; tr.appendChild(td);
+      ['R', 'L'].forEach(function (s) { var c = document.createElement('td'), se = document.createElement('select'); se.id = 'umap_' + s + '_' + r[0]; se.setAttribute('aria-label', r[1] + ' ' + s); opts(se, upperMap[s][r[0]]); c.appendChild(se); tr.appendChild(c); });
+      t.appendChild(tr);
+    });
+  }
+  function readUpperTable() {
+    upperMap = { mid: {}, R: {}, L: {} };
+    PL.UPPER_MID.forEach(function (r) { upperMap.mid[r[0]] = $('umap_M_' + r[0]).value; });
+    PL.UPPER_SIDE.forEach(function (r) { ['R', 'L'].forEach(function (s) { upperMap[s][r[0]] = $('umap_' + s + '_' + r[0]).value; }); });
+    var up = PL.upperPossible(upperMap);
+    U_SEGS.forEach(function (u) { var e = $('us_' + (u[1] || 'T') + '_' + u[0]), ok = u[1] ? up[u[1]][u[0]] : up.trunk; if (ok && e.disabled) e.checked = true; });
+  }
+  // returns {U, eu} or null; also refreshes the card state
+  function upperState(e) {
+    var on = $('uOn').checked, up = PL.upperPossible(upperMap), segs = { trunk: false, R: {}, L: {} }, any = false;
+    U_SEGS.forEach(function (u) {
+      var el = $('us_' + (u[1] || 'T') + '_' + u[0]), ok = u[1] ? up[u[1]][u[0]] : up.trunk;
+      el.disabled = !on || !ok; var use = on && ok && el.checked;
+      if (u[1]) segs[u[1]][u[0]] = use; else segs.trunk = use; if (use) any = true;
+    });
+    ['uShR', 'uShL'].forEach(function (id) { $(id).disabled = !on; });
+    var miss = [];
+    if (!up.trunk) miss.push('trunk ต้องมี C7, T10, CLAV, STRN');
+    ['R', 'L'].forEach(function (s) { if (!up[s].arm && up.trunk) miss.push(s + ' upper arm ต้องมี SHO, UPA, ELB, ELB medial'); if (!up[s].hand) miss.push(s + ' hand ต้องมี WRA, WRB, FIN'); });
+    $('uStatus').textContent = (on ? (any ? 'จะเพิ่ม: ' + U_SEGS.filter(function (u) { return u[1] ? segs[u[1]][u[0]] : segs.trunk; }).map(function (u) { return u[2]; }).join(', ') : 'ยังไม่มี segment ที่สร้างได้') : 'ปิดอยู่: mdh มีเฉพาะ lower body 16 markers') + (on && miss.length ? ' · ขาด: ' + miss.join('; ') : '');
+    if (!on || !any || !e || !e.rows || !e.ok) return null;
+    var row = function (n) { var r = e.rows.filter(function (x) { return x.name === n; })[0]; return r ? r.v : null; };
+    var eu = PL.expectedUpper(means, upperMap, segs, { R: row('RIGHT_HIP'), L: row('LEFT_HIP') }, e.pelvis.ml, { markerDiameterMm: num('md'), shoulderR: num('uShR'), shoulderL: num('uShL') });
+    $('uShR').placeholder = String(eu.params.shoulderOffset.R); $('uShL').placeholder = String(eu.params.shoulderOffset.L);
+    return { eu: eu, U: { map: upperMap, segs: segs, shoulderOffset: eu.params.shoulderOffset, shoulderEntered: { R: num('uShR') > 0, L: num('uShL') > 0 },
+      elbowW: eu.params.elbowW, wristW: eu.params.wristW, trunkRadius: eu.params.trunkRadius || 0.15 } };
+  }
+  ['uOn', 'uShR', 'uShL'].forEach(function (k) { $(k).addEventListener('input', render); $(k).addEventListener('change', render); });
 
   function num(id) { var v = $(id).value; return v === '' ? null : +v; }
   function render() {
@@ -986,11 +1196,18 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
       var seen = {}, dupL = [];
       ['R', 'L'].forEach(function (s) { PL.ROLES.forEach(function (r) { var l = roleMap[s][r[0]]; if (seen[l]) dupL.push(l); seen[l] = 1; }); });
       if (dupL.length) msgs.push(['bad', 'ใช้ marker ซ้ำหลายตำแหน่ง: ' + dupL.join(', ')]);
+      e = PL.expected(means, roleMap, opts);
+      var us = upperState(e);
+      if (us) {
+        opts.upper = us.U;
+        e.rows = e.rows.concat(us.eu.rows); e.tracking = e.tracking.concat(us.eu.tracking);
+        us.eu.notes.forEach(function (m) { msgs.push(['warn', m]); });
+        PL.upperLabels(us.U).forEach(function (k) { if (mm.valid[k] < mm.total) msgs.push(['warn', k + ' มีข้อมูลเพียง ' + mm.valid[k] + '/' + mm.total + ' เฟรม ในช่วงที่เลือก']); });
+      } else if ($('uOn').checked && !e.ok) msgs.push(['warn', 'ยังสร้าง upper body ไม่ได้ เพราะคำนวณ hip joint centre จาก lower body ไม่ได้']);
       g = PL.generate(opts);
       var allowed = C.bare.map(function (l) { return pfx + l; });
       v = PL.validate(g.text, allowed);
       v.errors.forEach(function (m) { msgs.push(['bad', m]); });
-      e = PL.expected(means, roleMap, opts);
       e.notes.forEach(function (m) { msgs.push(['warn', m]); });
       $('out').value = g.text; curText = g.text;
       Object.keys(mm.valid).forEach(function (k) {
@@ -1168,7 +1385,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     ['vStatic', 'vModel', 'vFolder', 'vExtra', 'vNew', 'vSet', 'vTag'].forEach(function (id) { $(id).disabled = ws; });
     if (C) { vAuto('vStatic', fileName); vAuto('vModel', outName()); }
     var segs = curText ? PL.mdhSegments(curText) : null;
-    PL.JOINTS.forEach(function (j) { var el = $('vj_' + j.id), ok = !segs || (!!segs[j.seg] && !!segs[j.ref]); el.disabled = !ok; if (!ok) el.checked = false; });
+    PL.JOINTS.forEach(function (j) { var el = $('vj_' + j.id), ok = !segs || (!!segs[j.seg] && !!segs[j.ref]); if (ok && el.disabled) el.checked = true; el.disabled = !ok; if (!ok) el.checked = false; });
     $('vSegTag').textContent = segs ? 'segments ใน mdh: ' + Object.keys(segs).join(' · ') : '';
     var ax = $('axes').value.split('|'), cf = PL.cardanFor(ax[0], ax[1]);
     var cardan = $('vCardan').value === 'auto' ? cf.seq : $('vCardan').value;
@@ -1182,7 +1399,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
       workspaceOnly: ws, tagMotion: $('vTag').checked, lowpass: $('vLow').checked, cutoff: $('vCut').value, reflected: $('vRef').value,
       interpolateNote: $('vInterp').checked, quantities: PL.QUANTITIES.filter(function (q) { return $('vq_' + q.id).checked; }).map(function (q) { return q.id; }),
       joints: PL.JOINTS.filter(function (j) { return $('vj_' + j.id).checked; }).map(function (j) { return j.id; }), customJoints: $('vCustom').value,
-      resolution: $('vRes').value, normalize: $('vNorm').checked, cardan: cardan, axesSeq: cf.seq, negateLeft: $('vNeg').checked,
+      resolution: $('vRes').value, normalize: $('vNorm').checked, cardan: cardan, axesSeq: cf.seq, negateLeft: $('vNeg').checked, shoulderSeq: $('vShSeq').value,
       axes: { ml: cf.ml, ap: cf.ap, axial: cf.axial }, exportMat: $('vMat').checked, exportFile: $('vMatName').value.trim(), stamp: today };
     vText = PL.generateV3s(o); $('vOut').value = vText;
     var m = PL.lintPipeline(o, { segments: segs, staticRate: C ? C.rate : 0, motions: usable, massEntered: massIn > 0, heightEntered: hIn > 0 });
@@ -1195,7 +1412,7 @@ table.vals select { font-size: 12px; padding: 3px 4px; width: auto; max-width: 1
     m.forEach(function (x) { var li = document.createElement('li'); li.className = x.level; li.textContent = x.text; ul.appendChild(li); });
   }
   ['vStatic', 'vModel'].forEach(function (id) { $(id).addEventListener('input', function () { vTouched[id] = 1; }); });
-  ['vWs', 'vStatic', 'vModel', 'vFolder', 'vExtra', 'vNew', 'vSet', 'vTag', 'vLow', 'vCut', 'vRef', 'vInterp', 'vRes', 'vNorm', 'vCustom', 'vCardan', 'vNeg', 'vMat', 'vMatName'].forEach(function (id) {
+  ['vWs', 'vStatic', 'vModel', 'vFolder', 'vExtra', 'vNew', 'vSet', 'vTag', 'vLow', 'vCut', 'vRef', 'vInterp', 'vRes', 'vNorm', 'vCustom', 'vCardan', 'vNeg', 'vShSeq', 'vMat', 'vMatName'].forEach(function (id) {
     $(id).addEventListener('input', renderPipe); $(id).addEventListener('change', renderPipe);
   });
   function v3sName() { return 'pipeline_' + ($('vStatic').value.trim() || 'static').replace(/\.c3d$/i, '').replace(/^.*[\\/]/, '').replace(/[^A-Za-z0-9_.-]+/g, '_') + '.v3s'; }
